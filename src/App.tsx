@@ -19,7 +19,7 @@ interface TimerStep {
 const languages: Language[] = ["zh", "en", "de"];
 
 function App() {
-  const [language, setLanguage] = useState<Language>("zh");
+  const [language, setLanguage] = useState<Language>("en");
   const [teaType, setTeaType] = useState<TeaType>("green");
   const [people, setPeople] = useState(1);
   const [vessel, setVessel] = useState<Vessel>(
@@ -52,7 +52,7 @@ function App() {
         <label className="languagePicker">
           <span>{copy.language}</span>
           <select
-            aria-label={copies.zh.language}
+            aria-label={copy.language}
             value={language}
             onChange={(event) => setLanguage(event.target.value as Language)}
           >

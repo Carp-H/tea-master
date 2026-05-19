@@ -8,10 +8,24 @@ describe("Tea Master app", () => {
     vi.useRealTimers();
   });
 
+  it("defaults to English as the main interface", () => {
+    render(<App />);
+
+    expect(screen.getByLabelText("Language")).toHaveValue("en");
+    expect(screen.getByText("Choose tea and vessel, then brew by people count")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Green" })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    expect(screen.getByText("Recommended vessel")).toBeInTheDocument();
+    expect(screen.queryByText("选择茶类")).not.toBeInTheDocument();
+  });
+
   it("shows the recommended vessels after selecting a tea type", async () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.selectOptions(screen.getByLabelText("Language"), "zh");
     await user.click(screen.getByRole("tab", { name: "白茶" }));
 
     const vesselGroup = screen.getByRole("group", { name: "推荐主泡器" });
@@ -27,6 +41,7 @@ describe("Tea Master app", () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.selectOptions(screen.getByLabelText("Language"), "zh");
     await user.click(screen.getByRole("tab", { name: "白茶" }));
     await user.click(screen.getByRole("button", { name: "增加人数" }));
     await user.click(screen.getByRole("button", { name: "增加人数" }));
@@ -42,6 +57,7 @@ describe("Tea Master app", () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.selectOptions(screen.getByLabelText("Language"), "zh");
     await user.click(screen.getByRole("tab", { name: "乌龙" }));
     const teaAmountBefore = screen.getByTestId("tea-amount").dataset.value;
     await user.selectOptions(screen.getByLabelText("语言"), "en");
@@ -57,19 +73,19 @@ describe("Tea Master app", () => {
 
     expect(screen.getByTestId("timer-display")).toHaveTextContent("02:00");
 
-    fireEvent.click(screen.getByRole("button", { name: "开始" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start" }));
     act(() => {
       vi.advanceTimersByTime(1000);
     });
     expect(screen.getByTestId("timer-display")).toHaveTextContent("01:59");
 
-    fireEvent.click(screen.getByRole("button", { name: "暂停" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
     act(() => {
       vi.advanceTimersByTime(3000);
     });
     expect(screen.getByTestId("timer-display")).toHaveTextContent("01:59");
 
-    fireEvent.click(screen.getByRole("button", { name: "重置" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
     expect(screen.getByTestId("timer-display")).toHaveTextContent("02:00");
   });
 });
