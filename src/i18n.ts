@@ -5,9 +5,6 @@ export interface Copy {
   subtitle: string;
   language: string;
   chooseTea: string;
-  people: string;
-  decreasePeople: string;
-  increasePeople: string;
   recommendedVessel: string;
   recommendation: string;
   vessel: string;
@@ -20,14 +17,30 @@ export interface Copy {
   prepareDetail: string;
   rinse: string;
   rinseDetail: string;
+  rinseDiscardHint: string;
   infusion: string;
+  optionalInfusion: string;
   infusionDetail: string;
+  immediateInfusionDetail: string;
+  greenFirstInfusionDetail: string;
+  greenRefillInfusionDetail: string;
+  greenOptionalInfusionDetail: string;
+  greenOptionalDuration: string;
+  greenCupHint: string;
+  whiteRinseDetail: string;
+  whiteFirstInfusionDetail: string;
+  whiteSecondInfusionDetail: string;
+  whiteFirstDuration: string;
+  whiteSecondDuration: string;
   timer: string;
   ready: string;
   running: string;
   paused: string;
   completed: string;
+  readyToSipStatus: string;
+  readyToSip: string;
   start: string;
+  nextInfusion: string;
   pause: string;
   resume: string;
   reset: string;
@@ -36,7 +49,6 @@ export interface Copy {
   grams: string;
   milliliters: string;
   seconds: string;
-  peopleUnit: string;
   teaNames: Record<TeaType, string>;
   vesselNames: Record<Vessel, string>;
 }
@@ -50,16 +62,13 @@ export const languageNames: Record<Language, string> = {
 export const copies: Record<Language, Copy> = {
   zh: {
     appName: "Tea Master",
-    subtitle: "选茶、选器、按人数生成泡茶流程",
+    subtitle: "选茶、选器、按主泡器容量生成泡茶流程",
     language: "语言",
     chooseTea: "选择茶类",
-    people: "喝茶人数",
-    decreasePeople: "减少人数",
-    increasePeople: "增加人数",
     recommendedVessel: "推荐主泡器",
     recommendation: "推荐参数",
     vessel: "主泡器",
-    water: "用水量",
+    water: "注水量",
     teaAmount: "投茶量",
     ratio: "茶水比",
     temperature: "水温",
@@ -68,14 +77,30 @@ export const copies: Record<Language, Copy> = {
     prepareDetail: "温杯洁具，放入茶叶，备好推荐水温。",
     rinse: "润茶",
     rinseDetail: "快速注水后倒出，用来唤醒茶叶。",
+    rinseDiscardHint: "小提示：润茶倒出的茶水不饮用。",
     infusion: "第 {index} 泡",
+    optionalInfusion: "可选第 {index} 泡",
     infusionDetail: "计时结束后立即出汤。",
+    immediateInfusionDetail: "即冲即出。",
+    greenFirstInfusionDetail: "用 80/85°C 水冲泡，玻璃杯久坐，计时结束后可直接饮用。",
+    greenRefillInfusionDetail: "第一泡喝到约剩三分之一时，用 100°C 沸水续满，继续浸泡。",
+    greenOptionalInfusionDetail: "再次喝到约剩三分之一时，重新注入 100°C 热水，可按口味浸泡。",
+    greenOptionalDuration: "3–5 分钟",
+    greenCupHint: "杯中浸泡",
+    whiteRinseDetail: "用 100°C 水冲淋茶叶后立刻倒出。",
+    whiteFirstInfusionDetail: "继续用 100°C 水冲泡茶叶，坐杯完成后出汤。",
+    whiteSecondInfusionDetail: "继续用 100°C 水冲泡茶叶，保持短坐杯后出汤。",
+    whiteFirstDuration: "20–30 秒",
+    whiteSecondDuration: "25–30 秒",
     timer: "逐泡计时",
     ready: "准备开始",
     running: "计时中",
     paused: "已暂停",
     completed: "已完成",
+    readyToSipStatus: "请品尝",
+    readyToSip: "您的茶好了，请慢慢品尝。",
     start: "开始",
+    nextInfusion: "开始下一泡",
     pause: "暂停",
     resume: "继续",
     reset: "重置",
@@ -84,16 +109,12 @@ export const copies: Record<Language, Copy> = {
     grams: "克",
     milliliters: "毫升",
     seconds: "秒",
-    peopleUnit: "人",
     teaNames: {
       green: "绿茶",
-      yellow: "黄茶",
       white: "白茶",
       black: "红茶",
       oolong: "乌龙",
-      dark: "黑茶",
-      puerh_raw: "普洱生茶",
-      puerh_ripe: "普洱熟茶"
+      dark: "黑茶"
     },
     vesselNames: {
       glass_cup: "玻璃杯",
@@ -105,12 +126,9 @@ export const copies: Record<Language, Copy> = {
   },
   en: {
     appName: "Tea Master",
-    subtitle: "Choose tea and vessel, then brew by people count",
+    subtitle: "Choose tea and vessel, then brew by vessel capacity",
     language: "Language",
     chooseTea: "Tea type",
-    people: "People",
-    decreasePeople: "Decrease people",
-    increasePeople: "Increase people",
     recommendedVessel: "Recommended vessel",
     recommendation: "Recommendation",
     vessel: "Vessel",
@@ -123,14 +141,30 @@ export const copies: Record<Language, Copy> = {
     prepareDetail: "Warm the vessel, add tea leaves, and prepare water.",
     rinse: "Rinse",
     rinseDetail: "Pour in water briefly, then discard it to wake the leaves.",
+    rinseDiscardHint: "Tip: Do not drink the rinse liquor.",
     infusion: "Infusion {index}",
+    optionalInfusion: "Optional infusion {index}",
     infusionDetail: "Pour out as soon as the timer ends.",
+    immediateInfusionDetail: "Pour out immediately.",
+    greenFirstInfusionDetail: "Brew with 80/85°C water in the glass cup, then drink directly from the cup.",
+    greenRefillInfusionDetail: "When about one third remains, refill with 100°C boiling water and steep again.",
+    greenOptionalInfusionDetail: "When about one third remains again, refill with 100°C water and steep to taste.",
+    greenOptionalDuration: "3–5 min",
+    greenCupHint: "Steeping in cup",
+    whiteRinseDetail: "Rinse the leaves with 100°C water, then pour out immediately.",
+    whiteFirstInfusionDetail: "Continue with 100°C water and pour out after the steep.",
+    whiteSecondInfusionDetail: "Continue with 100°C water, keeping a short steep before pouring out.",
+    whiteFirstDuration: "20–30 sec",
+    whiteSecondDuration: "25–30 sec",
     timer: "Infusion timer",
     ready: "Ready",
     running: "Running",
     paused: "Paused",
     completed: "Completed",
+    readyToSipStatus: "Enjoy",
+    readyToSip: "Your tea is ready. Sip slowly.",
     start: "Start",
+    nextInfusion: "Start next infusion",
     pause: "Pause",
     resume: "Resume",
     reset: "Reset",
@@ -139,16 +173,12 @@ export const copies: Record<Language, Copy> = {
     grams: "g",
     milliliters: "ml",
     seconds: "sec",
-    peopleUnit: "people",
     teaNames: {
       green: "Green",
-      yellow: "Yellow",
       white: "White",
       black: "Black",
       oolong: "Oolong",
-      dark: "Dark",
-      puerh_raw: "Raw Pu-erh",
-      puerh_ripe: "Ripe Pu-erh"
+      dark: "Dark"
     },
     vesselNames: {
       glass_cup: "Glass cup",
@@ -160,50 +190,59 @@ export const copies: Record<Language, Copy> = {
   },
   de: {
     appName: "Tea Master",
-    subtitle: "Tee und Gefass wahlen, dann nach Personenzahl bruhen",
+    subtitle: "Tee und Gefäß wählen, dann nach Gefäßvolumen brühen",
     language: "Sprache",
     chooseTea: "Teeart",
-    people: "Personen",
-    decreasePeople: "Personenzahl verringern",
-    increasePeople: "Personenzahl erhohen",
-    recommendedVessel: "Empfohlenes Gefass",
+    recommendedVessel: "Empfohlenes Gefäß",
     recommendation: "Empfehlung",
-    vessel: "Gefass",
+    vessel: "Gefäß",
     water: "Wasser",
     teaAmount: "Teemenge",
-    ratio: "Tee-Wasser-Verhaltnis",
+    ratio: "Tee-Wasser-Verhältnis",
     temperature: "Wassertemperatur",
     process: "Brühablauf",
     prepare: "Vorbereiten",
-    prepareDetail: "Gefass vorwarmen, Tee einfullen und Wasser vorbereiten.",
-    rinse: "Spulen",
-    rinseDetail: "Kurz aufgiessen und abgiessen, um die Blatter zu wecken.",
+    prepareDetail: "Gefäß vorwärmen, Tee einfüllen und Wasser vorbereiten.",
+    rinse: "Spülen",
+    rinseDetail: "Kurz aufgießen und abgießen, um die Blätter zu wecken.",
+    rinseDiscardHint: "Hinweis: Der Spülaufguss wird nicht getrunken.",
     infusion: "Aufguss {index}",
-    infusionDetail: "Nach Ablauf der Zeit sofort abgiessen.",
+    optionalInfusion: "Optionaler Aufguss {index}",
+    infusionDetail: "Nach Ablauf der Zeit sofort abgießen.",
+    immediateInfusionDetail: "Sofort abgießen.",
+    greenFirstInfusionDetail: "Mit 80/85°C heißem Wasser im Glasbecher aufgießen und direkt aus dem Becher trinken.",
+    greenRefillInfusionDetail: "Wenn noch etwa ein Drittel übrig ist, mit 100°C kochendem Wasser auffüllen und weiter ziehen lassen.",
+    greenOptionalInfusionDetail: "Wieder bei etwa einem Drittel Rest mit 100°C heißem Wasser auffüllen und nach Geschmack ziehen lassen.",
+    greenOptionalDuration: "3–5 Min.",
+    greenCupHint: "Im Becher ziehen lassen",
+    whiteRinseDetail: "Die Blätter mit 100°C heißem Wasser spülen und sofort abgießen.",
+    whiteFirstInfusionDetail: "Mit 100°C heißem Wasser weiter aufgießen und nach dem Ziehen abgießen.",
+    whiteSecondInfusionDetail: "Mit 100°C heißem Wasser weiter aufgießen, kurz ziehen lassen und abgießen.",
+    whiteFirstDuration: "20–30 Sek.",
+    whiteSecondDuration: "25–30 Sek.",
     timer: "Aufguss-Timer",
     ready: "Bereit",
-    running: "Lauft",
+    running: "Läuft",
     paused: "Pausiert",
     completed: "Fertig",
+    readyToSipStatus: "Genießen",
+    readyToSip: "Ihr Tee ist fertig. Genießen Sie ihn in Ruhe.",
     start: "Start",
+    nextInfusion: "Nächsten Aufguss starten",
     pause: "Pause",
     resume: "Weiter",
-    reset: "Zurucksetzen",
-    pourOut: "Abgiessen",
-    allDone: "Ablauf fertig. Weitere Aufgusse nach Geschmack verlangern.",
+    reset: "Zurücksetzen",
+    pourOut: "Abgießen",
+    allDone: "Ablauf fertig. Weitere Aufgüsse nach Geschmack verlängern.",
     grams: "g",
     milliliters: "ml",
     seconds: "Sek.",
-    peopleUnit: "Pers.",
     teaNames: {
-      green: "Gruntee",
-      yellow: "Gelber Tee",
-      white: "Weisser Tee",
+      green: "Grüntee",
+      white: "Weißer Tee",
       black: "Schwarzer Tee",
       oolong: "Oolong",
-      dark: "Dunkler Tee",
-      puerh_raw: "Roher Pu-Erh",
-      puerh_ripe: "Reifer Pu-Erh"
+      dark: "Dunkler Tee"
     },
     vesselNames: {
       glass_cup: "Glasbecher",

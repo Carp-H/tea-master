@@ -5,13 +5,20 @@ import { calculateRecipe } from "./calculateRecipe";
 describe("tea vessel recommendations", () => {
   it("returns the planned vessel options for every tea type", () => {
     expect(getRecommendedVessels("green")).toEqual(["glass_cup"]);
-    expect(getRecommendedVessels("yellow")).toEqual(["glass_cup"]);
-    expect(getRecommendedVessels("white")).toEqual(["gaiwan", "porcelain_pot"]);
+    expect(getRecommendedVessels("white")).toEqual(["gaiwan"]);
     expect(getRecommendedVessels("black")).toEqual(["gaiwan", "porcelain_pot"]);
     expect(getRecommendedVessels("oolong")).toEqual(["gaiwan"]);
     expect(getRecommendedVessels("dark")).toEqual(["gaiwan", "zisha_pot", "clay_pot"]);
-    expect(getRecommendedVessels("puerh_raw")).toEqual(["gaiwan", "zisha_pot", "clay_pot"]);
-    expect(getRecommendedVessels("puerh_ripe")).toEqual(["gaiwan", "zisha_pot", "clay_pot"]);
+  });
+
+  it("only exposes the simplified tea set", () => {
+    expect(teaProfiles.map((profile) => profile.id)).toEqual([
+      "green",
+      "white",
+      "black",
+      "oolong",
+      "dark"
+    ]);
   });
 
   it("keeps each tea profile aligned with its vessel recommendations", () => {
@@ -22,53 +29,209 @@ describe("tea vessel recommendations", () => {
 });
 
 describe("recipe calculation", () => {
-  it("calculates people-scaled values from tea type and selected vessel", () => {
+  it("uses the revised tea-water ratios by tea type and vessel", () => {
+    const green = calculateRecipe({ teaType: "green", vessel: "glass_cup" });
+    const blackGaiwan = calculateRecipe({ teaType: "black", vessel: "gaiwan" });
+    const blackPot = calculateRecipe({
+      teaType: "black",
+      vessel: "porcelain_pot"
+    });
+    const oolong = calculateRecipe({ teaType: "oolong", vessel: "gaiwan" });
+    const darkGaiwan = calculateRecipe({ teaType: "dark", vessel: "gaiwan" });
+    const darkZisha = calculateRecipe({ teaType: "dark", vessel: "zisha_pot" });
+    const darkClay = calculateRecipe({ teaType: "dark", vessel: "clay_pot" });
+
+    expect(green.ratioMlPerGram).toBe(100);
+    expect(green.teaGrams).toBe(2.5);
+    expect(calculateRecipe({ teaType: "white", vessel: "gaiwan" }).ratioMlPerGramRange).toEqual({
+      min: 20,
+      max: 40
+    });
+    expect(blackGaiwan.ratioMlPerGram).toBe(30);
+    expect(blackPot.ratioMlPerGram).toBe(100);
+    expect(oolong.ratioMlPerGram).toBe(15);
+    expect(oolong.ratioMlPerGramRange).toEqual({ min: 15, max: 20 });
+    expect(oolong.teaGrams).toBe(7.5);
+    expect(darkGaiwan.ratioMlPerGram).toBe(25);
+    expect(darkZisha.ratioMlPerGram).toBe(20);
+    expect(darkZisha.teaGrams).toBe(6.5);
+    expect(darkClay.ratioMlPerGram).toBe(20);
+    expect(darkClay.teaGrams).toBe(7.5);
+  });
+
+  it("uses the revised oolong temperature range and seven-infusion flow", () => {
+    const recipe = calculateRecipe({ teaType: "oolong", vessel: "gaiwan" });
+
+    expect(recipe.temperatureCRange).toEqual({ min: 95, max: 100 });
+    expect(recipe.rinseSeconds).toBeUndefined();
+    expect(recipe.infusions.map((infusion) => infusion.seconds)).toEqual([
+      0, 0, 5, 10, 15, 20, 25
+    ]);
+  });
+
+  it("uses the glass-cup green tea temperature range and refill flow", () => {
+    const recipe = calculateRecipe({ teaType: "green", vessel: "glass_cup" });
+
+    expect(recipe.temperatureCRange).toEqual({ min: 80, max: 100 });
+    expect(recipe.infusions).toEqual([
+      {
+        index: 1,
+        seconds: 120,
+        detailKey: "green_first"
+      },
+      {
+        index: 2,
+        seconds: 180,
+        detailKey: "green_refill"
+      },
+      {
+        index: 3,
+        seconds: 180,
+        detailKey: "green_optional",
+        optional: true
+      }
+    ]);
+  });
+
+  it("uses the revised white tea gaiwan-only ratio range, rinse, and six-to-seven infusion flow", () => {
+    const recipe = calculateRecipe({ teaType: "white", vessel: "gaiwan" });
+
+    expect(recipe.vessel).toBe("gaiwan");
+    expect(recipe.ratioMlPerGram).toBe(30);
+    expect(recipe.ratioMlPerGramRange).toEqual({ min: 20, max: 40 });
+    expect(recipe.teaGrams).toBe(3.5);
+    expect(recipe.temperatureC).toBe(100);
+    expect(recipe.rinseSeconds).toBe(0);
+    expect(recipe.rinseDetailKey).toBe("white_rinse");
+    expect(recipe.infusions).toEqual([
+      {
+        index: 1,
+        seconds: 25,
+        detailKey: "white_first"
+      },
+      {
+        index: 2,
+        seconds: 30,
+        detailKey: "white_second"
+      },
+      {
+        index: 3,
+        seconds: 35
+      },
+      {
+        index: 4,
+        seconds: 40
+      },
+      {
+        index: 5,
+        seconds: 45
+      },
+      {
+        index: 6,
+        seconds: 50
+      },
+      {
+        index: 7,
+        seconds: 55,
+        optional: true
+      }
+    ]);
+  });
+
+  it("uses the revised black tea porcelain-pot capacity, temperature range, and two-infusion flow", () => {
     const recipe = calculateRecipe({
-      teaType: "white",
-      vessel: "porcelain_pot",
-      people: 3
+      teaType: "black",
+      vessel: "porcelain_pot"
     });
 
-    expect(recipe.waterMl).toBe(450);
-    expect(recipe.teaGrams).toBe(7.5);
-    expect(recipe.ratioMlPerGram).toBe(60);
-    expect(recipe.temperatureC).toBe(90);
+    expect(recipe.waterMl).toBe(230);
+    expect(recipe.ratioMlPerGram).toBe(100);
+    expect(recipe.teaGrams).toBe(2.5);
+    expect(recipe.temperatureCRange).toEqual({ min: 90, max: 100 });
+    expect(recipe.infusions).toEqual([
+      {
+        index: 1,
+        seconds: 120
+      },
+      {
+        index: 2,
+        seconds: 180
+      },
+      {
+        index: 3,
+        seconds: 300,
+        optional: true
+      }
+    ]);
+  });
+
+  it("uses the revised black tea gaiwan temperature and six-infusion flow", () => {
+    const recipe = calculateRecipe({
+      teaType: "black",
+      vessel: "gaiwan"
+    });
+
+    expect(recipe.temperatureC).toBe(100);
+    expect(recipe.temperatureCRange).toBeUndefined();
     expect(recipe.infusions.map((infusion) => infusion.seconds)).toEqual([
-      180, 240, 300
+      20, 20, 25, 30, 40, 50
+    ]);
+  });
+
+  it("calculates vessel-capacity values from tea type and selected vessel", () => {
+    const recipe = calculateRecipe({
+      teaType: "white",
+      vessel: "gaiwan"
+    });
+
+    expect(recipe.waterMl).toBe(110);
+    expect(recipe.teaGrams).toBe(3.5);
+    expect(recipe.ratioMlPerGram).toBe(30);
+    expect(recipe.temperatureC).toBe(100);
+    expect(recipe.infusions.map((infusion) => infusion.seconds)).toEqual([
+      25, 30, 35, 40, 45, 50, 55
     ]);
   });
 
   it("updates the numeric recommendation when the vessel changes", () => {
     const gaiwan = calculateRecipe({
       teaType: "dark",
-      vessel: "gaiwan",
-      people: 2
+      vessel: "gaiwan"
     });
     const zisha = calculateRecipe({
       teaType: "dark",
-      vessel: "zisha_pot",
-      people: 2
+      vessel: "zisha_pot"
     });
 
-    expect(gaiwan.waterMl).toBe(220);
-    expect(gaiwan.teaGrams).toBe(9);
+    expect(gaiwan.waterMl).toBe(110);
+    expect(gaiwan.teaGrams).toBe(4.5);
     expect(gaiwan.rinseSeconds).toBe(10);
-    expect(zisha.waterMl).toBe(260);
-    expect(zisha.teaGrams).toBe(10.5);
+    expect(zisha.waterMl).toBe(130);
+    expect(zisha.teaGrams).toBe(6.5);
     expect(zisha.ratioMlPerGram).not.toBe(gaiwan.ratioMlPerGram);
+  });
+
+  it("uses a manually edited water amount to recalculate tea grams from the recommended ratio", () => {
+    const recipe = calculateRecipe({
+      teaType: "white",
+      vessel: "gaiwan",
+      waterMl: 600
+    });
+
+    expect(recipe.waterMl).toBe(600);
+    expect(recipe.ratioMlPerGram).toBe(30);
+    expect(recipe.teaGrams).toBe(20);
   });
 
   it("does not let language affect recipe calculation", () => {
     const chineseRecipe = calculateRecipe({
       teaType: "oolong",
       vessel: "gaiwan",
-      people: 4,
       language: "zh"
     });
     const germanRecipe = calculateRecipe({
       teaType: "oolong",
       vessel: "gaiwan",
-      people: 4,
       language: "de"
     });
 
@@ -77,7 +240,7 @@ describe("recipe calculation", () => {
 
   it("rejects a vessel that is not recommended for the tea type", () => {
     expect(() =>
-      calculateRecipe({ teaType: "green", vessel: "gaiwan", people: 1 })
+      calculateRecipe({ teaType: "green", vessel: "gaiwan" })
     ).toThrow("Vessel gaiwan is not available for tea type green");
   });
 });

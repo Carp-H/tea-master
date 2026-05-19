@@ -4,65 +4,71 @@ export const brewingGuides: BrewingGuide[] = [
   {
     teaType: "green",
     vessel: "glass_cup",
-    waterPerPersonMl: 250,
-    ratioMlPerGram: 50,
+    vesselCapacityMl: 250,
+    ratioMlPerGram: 100,
     temperatureC: 80,
-    infusionSeconds: [120, 150, 180]
-  },
-  {
-    teaType: "yellow",
-    vessel: "glass_cup",
-    waterPerPersonMl: 250,
-    ratioMlPerGram: 50,
-    temperatureC: 85,
-    infusionSeconds: [150, 180, 240]
+    temperatureCRange: { min: 80, max: 100 },
+    infusions: [
+      { seconds: 120, detailKey: "green_first" },
+      { seconds: 180, detailKey: "green_refill" },
+      { seconds: 180, detailKey: "green_optional", optional: true }
+    ]
   },
   {
     teaType: "white",
     vessel: "gaiwan",
-    waterPerPersonMl: 110,
-    ratioMlPerGram: 35,
-    temperatureC: 90,
-    infusionSeconds: [25, 30, 40, 55, 75]
-  },
-  {
-    teaType: "white",
-    vessel: "porcelain_pot",
-    waterPerPersonMl: 150,
-    ratioMlPerGram: 60,
-    temperatureC: 90,
-    infusionSeconds: [180, 240, 300]
-  },
-  {
-    teaType: "black",
-    vessel: "gaiwan",
-    waterPerPersonMl: 110,
+    vesselCapacityMl: 110,
     ratioMlPerGram: 30,
-    temperatureC: 90,
-    infusionSeconds: [10, 15, 20, 30, 45]
+    ratioMlPerGramRange: { min: 20, max: 40 },
+    temperatureC: 100,
+    rinseSeconds: 0,
+    rinseDetailKey: "white_rinse",
+    infusions: [
+      { seconds: 25, detailKey: "white_first" },
+      { seconds: 30, detailKey: "white_second" },
+      { seconds: 35 },
+      { seconds: 40 },
+      { seconds: 45 },
+      { seconds: 50 },
+      { seconds: 55, optional: true }
+    ]
+  },
+  {
+    teaType: "black",
+    vessel: "gaiwan",
+    vesselCapacityMl: 110,
+    ratioMlPerGram: 30,
+    temperatureC: 100,
+    infusionSeconds: [20, 20, 25, 30, 40, 50]
   },
   {
     teaType: "black",
     vessel: "porcelain_pot",
-    waterPerPersonMl: 180,
-    ratioMlPerGram: 50,
+    vesselCapacityMl: 230,
+    ratioMlPerGram: 100,
     temperatureC: 90,
-    infusionSeconds: [120, 180, 240]
+    temperatureCRange: { min: 90, max: 100 },
+    infusions: [
+      { seconds: 120 },
+      { seconds: 180 },
+      { seconds: 300, optional: true }
+    ]
   },
   {
     teaType: "oolong",
     vessel: "gaiwan",
-    waterPerPersonMl: 110,
-    ratioMlPerGram: 18,
+    vesselCapacityMl: 110,
+    ratioMlPerGram: 15,
+    ratioMlPerGramRange: { min: 15, max: 20 },
     temperatureC: 95,
-    rinseSeconds: 5,
-    infusionSeconds: [10, 15, 20, 30, 45, 60]
+    temperatureCRange: { min: 95, max: 100 },
+    infusionSeconds: [0, 0, 5, 10, 15, 20, 25]
   },
   {
     teaType: "dark",
     vessel: "gaiwan",
-    waterPerPersonMl: 110,
-    ratioMlPerGram: 24,
+    vesselCapacityMl: 110,
+    ratioMlPerGram: 25,
     temperatureC: 100,
     rinseSeconds: 10,
     infusionSeconds: [10, 15, 25, 40, 60]
@@ -70,8 +76,8 @@ export const brewingGuides: BrewingGuide[] = [
   {
     teaType: "dark",
     vessel: "zisha_pot",
-    waterPerPersonMl: 130,
-    ratioMlPerGram: 25,
+    vesselCapacityMl: 130,
+    ratioMlPerGram: 20,
     temperatureC: 100,
     rinseSeconds: 10,
     infusionSeconds: [12, 18, 28, 45, 65]
@@ -79,65 +85,11 @@ export const brewingGuides: BrewingGuide[] = [
   {
     teaType: "dark",
     vessel: "clay_pot",
-    waterPerPersonMl: 150,
-    ratioMlPerGram: 30,
+    vesselCapacityMl: 150,
+    ratioMlPerGram: 20,
     temperatureC: 100,
     rinseSeconds: 10,
     infusionSeconds: [15, 20, 30, 50, 70]
-  },
-  {
-    teaType: "puerh_raw",
-    vessel: "gaiwan",
-    waterPerPersonMl: 110,
-    ratioMlPerGram: 22,
-    temperatureC: 95,
-    rinseSeconds: 5,
-    infusionSeconds: [8, 12, 18, 25, 40, 60]
-  },
-  {
-    teaType: "puerh_raw",
-    vessel: "zisha_pot",
-    waterPerPersonMl: 130,
-    ratioMlPerGram: 24,
-    temperatureC: 95,
-    rinseSeconds: 5,
-    infusionSeconds: [10, 15, 22, 32, 48, 68]
-  },
-  {
-    teaType: "puerh_raw",
-    vessel: "clay_pot",
-    waterPerPersonMl: 150,
-    ratioMlPerGram: 28,
-    temperatureC: 95,
-    rinseSeconds: 5,
-    infusionSeconds: [12, 18, 26, 38, 55, 75]
-  },
-  {
-    teaType: "puerh_ripe",
-    vessel: "gaiwan",
-    waterPerPersonMl: 110,
-    ratioMlPerGram: 25,
-    temperatureC: 100,
-    rinseSeconds: 10,
-    infusionSeconds: [8, 12, 18, 25, 40, 60]
-  },
-  {
-    teaType: "puerh_ripe",
-    vessel: "zisha_pot",
-    waterPerPersonMl: 130,
-    ratioMlPerGram: 26,
-    temperatureC: 100,
-    rinseSeconds: 10,
-    infusionSeconds: [10, 15, 22, 32, 48, 68]
-  },
-  {
-    teaType: "puerh_ripe",
-    vessel: "clay_pot",
-    waterPerPersonMl: 150,
-    ratioMlPerGram: 30,
-    temperatureC: 100,
-    rinseSeconds: 10,
-    infusionSeconds: [12, 18, 28, 42, 60, 80]
   }
 ];
 

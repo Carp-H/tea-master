@@ -1,12 +1,9 @@
 export type TeaType =
   | "green"
-  | "yellow"
   | "white"
   | "black"
   | "oolong"
-  | "dark"
-  | "puerh_raw"
-  | "puerh_ripe";
+  | "dark";
 
 export type Vessel =
   | "glass_cup"
@@ -17,6 +14,16 @@ export type Vessel =
 
 export type Language = "zh" | "en" | "de";
 
+export type InfusionDetailKey =
+  | "standard"
+  | "immediate"
+  | "green_first"
+  | "green_refill"
+  | "green_optional"
+  | "white_rinse"
+  | "white_first"
+  | "white_second";
+
 export interface TeaProfile {
   id: TeaType;
   vessels: Vessel[];
@@ -25,33 +32,52 @@ export interface TeaProfile {
 export interface RecipeRequest {
   teaType: TeaType;
   vessel: Vessel;
-  people: number;
+  waterMl?: number;
   language?: Language;
 }
 
 export interface InfusionStep {
   index: number;
   seconds: number;
+  detailKey?: InfusionDetailKey;
+  optional?: boolean;
+}
+
+export interface NumericRange {
+  min: number;
+  max: number;
 }
 
 export interface BrewingRecipe {
   teaType: TeaType;
   vessel: Vessel;
-  people: number;
   waterMl: number;
   teaGrams: number;
   ratioMlPerGram: number;
+  ratioMlPerGramRange?: NumericRange;
   temperatureC: number;
+  temperatureCRange?: NumericRange;
   rinseSeconds?: number;
+  rinseDetailKey?: InfusionDetailKey;
   infusions: InfusionStep[];
+}
+
+export interface BrewingGuideInfusion {
+  seconds: number;
+  detailKey?: InfusionDetailKey;
+  optional?: boolean;
 }
 
 export interface BrewingGuide {
   teaType: TeaType;
   vessel: Vessel;
-  waterPerPersonMl: number;
+  vesselCapacityMl: number;
   ratioMlPerGram: number;
+  ratioMlPerGramRange?: NumericRange;
   temperatureC: number;
+  temperatureCRange?: NumericRange;
   rinseSeconds?: number;
-  infusionSeconds: number[];
+  rinseDetailKey?: InfusionDetailKey;
+  infusionSeconds?: number[];
+  infusions?: BrewingGuideInfusion[];
 }

@@ -1,4 +1,8 @@
-import type { BrewingRecipe, RecipeRequest } from "../types";
+import type {
+  BrewingGuideInfusion,
+  BrewingRecipe,
+  RecipeRequest
+} from "../types";
 import { getBrewingGuide } from "../data/brewingGuides";
 import { getRecommendedVessels } from "../data/teaProfiles";
 
@@ -17,27 +21,39 @@ export function calculateRecipe(request: RecipeRequest): BrewingRecipe {
     );
   }
 
-  const people = clampPeople(request.people);
-  const waterMl = people * guide.waterPerPersonMl;
+  const recommendedWaterMl = guide.vesselCapacityMl;
+  const waterMl = resolveWaterMl(request.waterMl, recommendedWaterMl);
+  const infusions: BrewingGuideInfusion[] =
+    guide.infusions ??
+    guide.infusionSeconds?.map((seconds) => ({ seconds })) ??
+    [];
 
   return {
     teaType: request.teaType,
     vessel: request.vessel,
-    people,
     waterMl,
     teaGrams: roundToHalf(waterMl / guide.ratioMlPerGram),
     ratioMlPerGram: guide.ratioMlPerGram,
+    ratioMlPerGramRange: guide.ratioMlPerGramRange,
     temperatureC: guide.temperatureC,
+    temperatureCRange: guide.temperatureCRange,
     rinseSeconds: guide.rinseSeconds,
-    infusions: guide.infusionSeconds.map((seconds, index) => ({
+    rinseDetailKey: guide.rinseDetailKey,
+    infusions: infusions.map((infusion, index) => ({
       index: index + 1,
-      seconds
+      seconds: infusion.seconds,
+      ...(infusion.detailKey ? { detailKey: infusion.detailKey } : {}),
+      ...(infusion.optional ? { optional: infusion.optional } : {})
     }))
   };
 }
 
-function clampPeople(people: number): number {
-  return Math.min(8, Math.max(1, Math.round(people)));
+function resolveWaterMl(waterMl: number | undefined, fallbackWaterMl: number): number {
+  if (waterMl === undefined || !Number.isFinite(waterMl)) {
+    return fallbackWaterMl;
+  }
+
+  return Math.max(1, Math.round(waterMl));
 }
 
 function roundToHalf(value: number): number {

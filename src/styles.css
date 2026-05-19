@@ -20,6 +20,7 @@ body {
 }
 
 button,
+input,
 select {
   font: inherit;
 }
@@ -139,8 +140,7 @@ h2 {
 
 .teaTabs,
 .segmented,
-.timerActions,
-.stepper {
+.timerActions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -168,7 +168,6 @@ h2 {
 
 .controlGrid {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) 1fr;
   gap: 18px;
   margin-top: 20px;
 }
@@ -185,11 +184,6 @@ h2 {
   font-weight: 800;
 }
 
-.stepper {
-  align-items: center;
-}
-
-.stepper button,
 .timerActions button {
   display: inline-flex;
   align-items: center;
@@ -201,23 +195,6 @@ h2 {
   background: #ffffff;
   color: #1f3028;
   font-weight: 800;
-}
-
-.stepper button {
-  width: 42px;
-  padding: 0;
-}
-
-.stepper output {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 86px;
-  min-height: 42px;
-  border: 1px solid #d4dccf;
-  border-radius: 8px;
-  background: #f9fbf6;
-  font-weight: 900;
 }
 
 .summaryGrid {
@@ -236,15 +213,46 @@ h2 {
   background: #fbfaf5;
 }
 
-.metric span {
+.metricLabel {
   color: #66736b;
   font-size: 0.86rem;
   font-weight: 800;
 }
 
-.metric strong {
+.metric strong,
+.metricInputValue {
   color: #18221d;
   font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.metricInputValue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.metricInputValue input {
+  width: 82px;
+  min-width: 0;
+  border: 1px solid #cbd4c8;
+  border-radius: 6px;
+  padding: 4px 6px;
+  background: #ffffff;
+  color: #18221d;
+  font-weight: 900;
+}
+
+.metricInputValue input:focus {
+  border-color: #2b6f58;
+  outline: 2px solid rgba(43, 111, 88, 0.22);
+  outline-offset: 1px;
+}
+
+.metricInputValue span {
+  color: #18221d;
+  white-space: nowrap;
 }
 
 .flowArea {
@@ -276,6 +284,16 @@ h2 {
   border: 1px solid #e2e5db;
   border-radius: 8px;
   background: #ffffff;
+}
+
+.stepList li.activeStep {
+  border-color: #b9d8bf;
+  background: #f0f8f0;
+}
+
+.stepList li.activeStep .stepNumber {
+  background: #c9e7d1;
+  color: #1c5b3d;
 }
 
 .stepNumber {
@@ -317,6 +335,11 @@ h2 {
 .statusPill.paused {
   background: #fff0d0;
   color: #8b5d12;
+}
+
+.statusPill.steeped {
+  background: #eef4d8;
+  color: #556c17;
 }
 
 .statusPill.completed {

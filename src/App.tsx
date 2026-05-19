@@ -1,18 +1,26 @@
-import { Minus, Pause, Play, Plus, RotateCcw } from "lucide-react";
+import { Pause, Play, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getRecommendedVessels, teaProfiles } from "./data/teaProfiles";
 import { copies, interpolate, languageNames } from "./i18n";
 import { calculateRecipe } from "./lib/calculateRecipe";
-import type { BrewingRecipe, Language, TeaType, Vessel } from "./types";
+import type {
+  BrewingRecipe,
+  InfusionDetailKey,
+  Language,
+  TeaType,
+  Vessel
+} from "./types";
 import "./styles.css";
 
-type TimerStatus = "idle" | "running" | "paused" | "completed";
+type TimerStatus = "idle" | "running" | "paused" | "steeped" | "completed";
 
 interface TimerStep {
   id: string;
   label: string;
   detail: string;
   seconds: number;
+  durationLabel?: string;
+  hint?: string;
   kind: "rinse" | "infusion";
 }
 
@@ -21,7 +29,6 @@ const languages: Language[] = ["zh", "en", "de"];
 function App() {
   const [language, setLanguage] = useState<Language>("en");
   const [teaType, setTeaType] = useState<TeaType>("green");
-  const [people, setPeople] = useState(1);
   const [vessel, setVessel] = useState<Vessel>(
     getRecommendedVessels("green")[0]
   );
@@ -36,10 +43,36 @@ function App() {
     }
   }, [activeVessel, vessel]);
 
-  const recipe = useMemo(
-    () => calculateRecipe({ teaType, vessel: activeVessel, people, language }),
-    [activeVessel, language, people, teaType]
+  const recommendedRecipe = useMemo(
+    () => calculateRecipe({ teaType, vessel: activeVessel, language }),
+    [activeVessel, language, teaType]
   );
+  const [waterMlInput, setWaterMlInput] = useState(() =>
+    String(recommendedRecipe.waterMl)
+  );
+
+  useEffect(() => {
+    setWaterMlInput(String(recommendedRecipe.waterMl));
+  }, [activeVessel, recommendedRecipe.waterMl, teaType]);
+
+  const manualWaterMl = parseWaterMl(waterMlInput);
+  const recipe = useMemo(
+    () =>
+      calculateRecipe({
+        teaType,
+        vessel: activeVessel,
+        language,
+        waterMl: manualWaterMl ?? recommendedRecipe.waterMl
+      }),
+    [
+      activeVessel,
+      language,
+      manualWaterMl,
+      recommendedRecipe.waterMl,
+      teaType
+    ]
+  );
+  const [activeTimerStepIndex, setActiveTimerStepIndex] = useState(0);
 
   return (
     <div className="appShell">
@@ -85,11 +118,6 @@ function App() {
           </div>
 
           <div className="controlGrid">
-            <PeopleStepper
-              copy={copy}
-              people={people}
-              onChange={(next) => setPeople(next)}
-            />
             <VesselSelector
               label={copy.recommendedVessel}
               vesselNames={copy.vesselNames}
@@ -104,47 +132,27 @@ function App() {
           <div className="sectionHeader">
             <h2 id="recipe-heading">{copy.recommendation}</h2>
           </div>
-          <RecipeSummary copy={copy} recipe={recipe} />
+          <RecipeSummary
+            copy={copy}
+            recipe={recipe}
+            waterMlInput={waterMlInput}
+            onWaterMlInputChange={setWaterMlInput}
+          />
         </section>
 
         <section className="flowArea">
-          <BrewingFlow copy={copy} recipe={recipe} />
-          <GuidedTimer copy={copy} recipe={recipe} />
+          <BrewingFlow
+            copy={copy}
+            recipe={recipe}
+            activeStepIndex={activeTimerStepIndex}
+          />
+          <GuidedTimer
+            copy={copy}
+            recipe={recipe}
+            onActiveStepChange={setActiveTimerStepIndex}
+          />
         </section>
       </main>
-    </div>
-  );
-}
-
-interface PeopleStepperProps {
-  copy: (typeof copies)["zh"];
-  people: number;
-  onChange: (people: number) => void;
-}
-
-function PeopleStepper({ copy, people, onChange }: PeopleStepperProps) {
-  return (
-    <div className="controlBlock">
-      <span className="controlLabel">{copy.people}</span>
-      <div className="stepper">
-        <button
-          type="button"
-          aria-label={copy.decreasePeople}
-          onClick={() => onChange(Math.max(1, people - 1))}
-          disabled={people <= 1}
-        >
-          <Minus size={18} />
-        </button>
-        <output>{formatPeople(people, copy.peopleUnit)}</output>
-        <button
-          type="button"
-          aria-label={copy.increasePeople}
-          onClick={() => onChange(Math.min(8, people + 1))}
-          disabled={people >= 8}
-        >
-          <Plus size={18} />
-        </button>
-      </div>
     </div>
   );
 }
@@ -184,60 +192,76 @@ function VesselSelector({
   );
 }
 
-interface RecipeSummaryProps {
+interface RecipeDisplayProps {
   copy: (typeof copies)["zh"];
   recipe: BrewingRecipe;
 }
 
-function RecipeSummary({ copy, recipe }: RecipeSummaryProps) {
-  const fields = [
-    {
-      label: copy.vessel,
-      value: copy.vesselNames[recipe.vessel],
-      testId: "vessel"
-    },
-    {
-      label: copy.water,
-      value: `${recipe.waterMl} ${copy.milliliters}`,
-      testId: "water",
-      dataValue: recipe.waterMl
-    },
-    {
-      label: copy.teaAmount,
-      value: `${recipe.teaGrams} ${copy.grams}`,
-      testId: "tea-amount",
-      dataValue: recipe.teaGrams
-    },
-    {
-      label: copy.ratio,
-      value: `1:${recipe.ratioMlPerGram}`,
-      testId: "ratio"
-    },
-    {
-      label: copy.temperature,
-      value: `${recipe.temperatureC}°C`,
-      testId: "temperature"
-    }
-  ];
+interface RecipeSummaryProps extends RecipeDisplayProps {
+  waterMlInput: string;
+  onWaterMlInputChange: (waterMl: string) => void;
+}
 
+interface BrewingFlowProps extends RecipeDisplayProps {
+  activeStepIndex: number;
+}
+
+function RecipeSummary({
+  copy,
+  recipe,
+  waterMlInput,
+  onWaterMlInputChange
+}: RecipeSummaryProps) {
   return (
     <div className="summaryGrid">
-      {fields.map((field) => (
-        <div className="metric" key={field.label}>
-          <span>{field.label}</span>
-          <strong
-            data-testid={field.testId}
-            data-value={field.dataValue ?? field.value}
-          >
-            {field.value}
-          </strong>
+      <div className="metric">
+        <span className="metricLabel">{copy.vessel}</span>
+        <strong data-testid="vessel" data-value={copy.vesselNames[recipe.vessel]}>
+          {copy.vesselNames[recipe.vessel]}
+        </strong>
+      </div>
+      <div className="metric">
+        <label className="metricLabel" htmlFor="water-ml-input">
+          {copy.water}
+        </label>
+        <div className="metricInputValue">
+          <input
+            id="water-ml-input"
+            type="number"
+            min="10"
+            step="10"
+            aria-label={copy.water}
+            data-testid="water"
+            data-value={recipe.waterMl}
+            value={waterMlInput}
+            onChange={(event) => onWaterMlInputChange(event.currentTarget.value)}
+          />
+          <span>{copy.milliliters}</span>
         </div>
-      ))}
+      </div>
+      <div className="metric">
+        <span className="metricLabel">{copy.teaAmount}</span>
+        <strong data-testid="tea-amount" data-value={recipe.teaGrams}>
+          {recipe.teaGrams} {copy.grams}
+        </strong>
+      </div>
+      <div className="metric">
+        <span className="metricLabel">{copy.ratio}</span>
+        <strong data-testid="ratio" data-value={formatRatio(recipe)}>
+          {formatRatio(recipe)}
+        </strong>
+      </div>
+      <div className="metric">
+        <span className="metricLabel">{copy.temperature}</span>
+        <strong data-testid="temperature" data-value={formatTemperature(recipe)}>
+          {formatTemperature(recipe)}
+        </strong>
+      </div>
     </div>
   );
 }
 
-function BrewingFlow({ copy, recipe }: RecipeSummaryProps) {
+function BrewingFlow({ copy, recipe, activeStepIndex }: BrewingFlowProps) {
   const steps = buildTimerSteps(copy, recipe);
 
   return (
@@ -253,23 +277,33 @@ function BrewingFlow({ copy, recipe }: RecipeSummaryProps) {
             <p>{copy.prepareDetail}</p>
           </div>
         </li>
-        {steps.map((step, index) => (
-          <li key={step.id}>
-            <span className="stepNumber">{index + 1}</span>
-            <div>
-              <strong>{step.label}</strong>
-              <p>
-                {formatSeconds(step.seconds, copy.seconds)} · {step.detail}
-              </p>
-            </div>
-          </li>
-        ))}
+        {steps.map((step, index) => {
+          const isActive = index === activeStepIndex;
+
+          return (
+            <li
+              key={step.id}
+              className={isActive ? "activeStep" : undefined}
+              aria-current={isActive ? "step" : undefined}
+            >
+              <span className="stepNumber">{index + 1}</span>
+              <div>
+                <strong>{step.label}</strong>
+                <p>{formatStepDetail(step, copy)}</p>
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </section>
   );
 }
 
-function GuidedTimer({ copy, recipe }: RecipeSummaryProps) {
+interface GuidedTimerProps extends RecipeDisplayProps {
+  onActiveStepChange: (stepIndex: number) => void;
+}
+
+function GuidedTimer({ copy, recipe, onActiveStepChange }: GuidedTimerProps) {
   const steps = useMemo(() => buildTimerSteps(copy, recipe), [copy, recipe]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [remainingSeconds, setRemainingSeconds] = useState(steps[0]?.seconds ?? 0);
@@ -282,6 +316,24 @@ function GuidedTimer({ copy, recipe }: RecipeSummaryProps) {
   }, [steps]);
 
   useEffect(() => {
+    onActiveStepChange(currentStepIndex);
+  }, [currentStepIndex, onActiveStepChange]);
+
+  function beginStep(stepIndex: number) {
+    const nextSeconds = steps[stepIndex]?.seconds ?? 0;
+
+    setCurrentStepIndex(stepIndex);
+    setRemainingSeconds(nextSeconds);
+    setStatus(
+      nextSeconds <= 0
+        ? stepIndex >= steps.length - 1
+          ? "completed"
+          : "steeped"
+        : "running"
+    );
+  }
+
+  useEffect(() => {
     if (status !== "running") {
       return;
     }
@@ -292,29 +344,23 @@ function GuidedTimer({ copy, recipe }: RecipeSummaryProps) {
           return seconds - 1;
         }
 
-        setCurrentStepIndex((index) => {
-          const nextIndex = index + 1;
-          if (nextIndex >= steps.length) {
-            setStatus("completed");
-            return index;
-          }
-
-          setRemainingSeconds(steps[nextIndex].seconds);
-          return nextIndex;
-        });
-
+        setStatus(
+          currentStepIndex >= steps.length - 1 ? "completed" : "steeped"
+        );
         return 0;
       });
     }, 1000);
 
     return () => window.clearInterval(id);
-  }, [status, steps]);
+  }, [currentStepIndex, status, steps]);
 
   const currentStep = steps[currentStepIndex];
+  const isStepDone = status === "steeped" || status === "completed";
   const statusText = {
     idle: copy.ready,
     running: copy.running,
     paused: copy.paused,
+    steeped: copy.readyToSipStatus,
     completed: copy.completed
   }[status];
 
@@ -323,7 +369,9 @@ function GuidedTimer({ copy, recipe }: RecipeSummaryProps) {
       ? copy.pause
       : status === "paused"
         ? copy.resume
-        : copy.start;
+        : status === "steeped"
+          ? copy.nextInfusion
+          : copy.start;
 
   return (
     <section className="timerPanel" aria-labelledby="timer-heading">
@@ -332,34 +380,39 @@ function GuidedTimer({ copy, recipe }: RecipeSummaryProps) {
         <span className={`statusPill ${status}`}>{statusText}</span>
       </div>
       <div className="timerFace">
-        <p>{status === "completed" ? copy.allDone : currentStep?.label}</p>
+        <p>{currentStep?.label ?? copy.allDone}</p>
         <strong data-testid="timer-display">
-          {formatClock(status === "completed" ? 0 : remainingSeconds)}
+          {formatClock(remainingSeconds)}
         </strong>
         <span>
-          {status === "completed"
-            ? copy.completed
+          {isStepDone
+            ? copy.readyToSip
             : currentStep
-              ? `${formatSeconds(currentStep.seconds, copy.seconds)} · ${currentStep.detail}`
+              ? formatStepDetail(currentStep, copy)
               : copy.ready}
         </span>
       </div>
       <div className="timerActions">
-        <button
-          type="button"
-          className="primaryAction"
-          onClick={() => {
-            if (status === "running") {
-              setStatus("paused");
-            } else {
-              setStatus("running");
-            }
-          }}
-          disabled={status === "completed"}
-        >
-          {status === "running" ? <Pause size={18} /> : <Play size={18} />}
-          {primaryLabel}
-        </button>
+        {status === "completed" ? null : (
+          <button
+            type="button"
+            className="primaryAction"
+            onClick={() => {
+              if (status === "running") {
+                setStatus("paused");
+              } else if (status === "steeped") {
+                beginStep(currentStepIndex + 1);
+              } else if (status === "paused") {
+                setStatus("running");
+              } else {
+                beginStep(currentStepIndex);
+              }
+            }}
+          >
+            {status === "running" ? <Pause size={18} /> : <Play size={18} />}
+            {primaryLabel}
+          </button>
+        )}
         <button
           type="button"
           className="secondaryAction"
@@ -373,44 +426,146 @@ function GuidedTimer({ copy, recipe }: RecipeSummaryProps) {
           {copy.reset}
         </button>
       </div>
-      {status === "completed" ? null : (
-        <p className="pourHint">{copy.pourOut}</p>
+      {isStepDone ? null : (
+        <p className="pourHint">{currentStep?.hint ?? copy.pourOut}</p>
       )}
     </section>
   );
 }
 
-function buildTimerSteps(copy: (typeof copies)["zh"], recipe: BrewingRecipe): TimerStep[] {
-  const rinseStep = recipe.rinseSeconds
-    ? [
-        {
-          id: "rinse",
-          label: copy.rinse,
-          detail: copy.rinseDetail,
-          seconds: recipe.rinseSeconds,
-          kind: "rinse" as const
-        }
-      ]
-    : [];
+function buildTimerSteps(
+  copy: (typeof copies)["zh"],
+  recipe: BrewingRecipe
+): TimerStep[] {
+  const rinseStep =
+    recipe.rinseSeconds === undefined
+      ? []
+      : [
+          {
+            id: "rinse",
+            label: copy.rinse,
+            detail: `${resolveRinseDetail(
+              copy,
+              recipe.rinseDetailKey
+            )} ${copy.rinseDiscardHint}`,
+            seconds: recipe.rinseSeconds,
+            kind: "rinse" as const
+          }
+        ];
 
   return [
     ...rinseStep,
     ...recipe.infusions.map((infusion) => ({
       id: `infusion-${infusion.index}`,
-      label: interpolate(copy.infusion, { index: infusion.index }),
-      detail: copy.infusionDetail,
+      label: interpolate(
+        infusion.optional ? copy.optionalInfusion : copy.infusion,
+        { index: infusion.index }
+      ),
+      detail: resolveInfusionDetail(copy, infusion.detailKey, infusion.seconds),
+      durationLabel: resolveDurationLabel(copy, infusion.detailKey),
+      hint: resolvePourHint(copy, infusion.detailKey),
       seconds: infusion.seconds,
       kind: "infusion" as const
     }))
   ];
 }
 
-function formatPeople(people: number, unit: string) {
-  return `${people} ${unit}`;
+function parseWaterMl(value: string): number | undefined {
+  if (value.trim() === "") {
+    return undefined;
+  }
+
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) ? parsedValue : undefined;
 }
 
 function formatSeconds(seconds: number, unit: string) {
   return `${seconds} ${unit}`;
+}
+
+function formatStepDetail(step: TimerStep, copy: (typeof copies)["zh"]) {
+  if (step.seconds <= 0) {
+    return step.detail;
+  }
+
+  const duration = step.durationLabel ?? formatSeconds(step.seconds, copy.seconds);
+  return `${duration} · ${step.detail}`;
+}
+
+function resolveRinseDetail(
+  copy: (typeof copies)["zh"],
+  detailKey: InfusionDetailKey | undefined
+) {
+  return detailKey === "white_rinse" ? copy.whiteRinseDetail : copy.rinseDetail;
+}
+
+function resolveInfusionDetail(
+  copy: (typeof copies)["zh"],
+  detailKey: InfusionDetailKey | undefined,
+  seconds: number
+) {
+  switch (detailKey) {
+    case "green_first":
+      return copy.greenFirstInfusionDetail;
+    case "green_refill":
+      return copy.greenRefillInfusionDetail;
+    case "green_optional":
+      return copy.greenOptionalInfusionDetail;
+    case "white_rinse":
+      return copy.whiteRinseDetail;
+    case "white_first":
+      return copy.whiteFirstInfusionDetail;
+    case "white_second":
+      return copy.whiteSecondInfusionDetail;
+    case "immediate":
+      return copy.immediateInfusionDetail;
+    case "standard":
+    default:
+      return seconds <= 0 ? copy.immediateInfusionDetail : copy.infusionDetail;
+  }
+}
+
+function resolveDurationLabel(
+  copy: (typeof copies)["zh"],
+  detailKey: InfusionDetailKey | undefined
+) {
+  switch (detailKey) {
+    case "green_optional":
+      return copy.greenOptionalDuration;
+    case "white_first":
+      return copy.whiteFirstDuration;
+    case "white_second":
+      return copy.whiteSecondDuration;
+    default:
+      return undefined;
+  }
+}
+
+function resolvePourHint(
+  copy: (typeof copies)["zh"],
+  detailKey: InfusionDetailKey | undefined
+) {
+  return detailKey?.startsWith("green_") ? copy.greenCupHint : copy.pourOut;
+}
+
+function formatRatio(recipe: BrewingRecipe) {
+  const range = recipe.ratioMlPerGramRange;
+
+  if (range) {
+    return `1:${range.min}–1:${range.max}`;
+  }
+
+  return `1:${recipe.ratioMlPerGram}`;
+}
+
+function formatTemperature(recipe: BrewingRecipe) {
+  const range = recipe.temperatureCRange;
+
+  if (range) {
+    return `${range.min}–${range.max}°C`;
+  }
+
+  return `${recipe.temperatureC}°C`;
 }
 
 function formatClock(totalSeconds: number) {
