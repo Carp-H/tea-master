@@ -48,17 +48,15 @@ describe("recipe calculation", () => {
 
     expect(green.ratioMlPerGram).toBe(100);
     expect(green.teaGrams).toBe(2.5);
-    expect(calculateRecipe({ teaType: "white", vessel: "gaiwan" }).ratioMlPerGramRange).toEqual({
-      min: 20,
-      max: 40
-    });
+    expect(calculateRecipe({ teaType: "white", vessel: "gaiwan" }).ratioMlPerGram).toBe(30);
+    expect(calculateRecipe({ teaType: "white", vessel: "gaiwan" }).ratioMlPerGramRange).toBeUndefined();
     expect(blackGaiwan.ratioMlPerGram).toBe(30);
     expect(blackPot.ratioMlPerGram).toBe(100);
     expect(oolong.ratioMlPerGram).toBe(15);
-    expect(oolong.ratioMlPerGramRange).toEqual({ min: 15, max: 20 });
-    expect(oolong.teaGrams).toBe(7.5);
+    expect(oolong.ratioMlPerGramRange).toBeUndefined();
+    expect(oolong.teaGrams).toBe(7.3);
     expect(darkGaiwan.ratioMlPerGram).toBe(20);
-    expect(darkGaiwan.ratioMlPerGramRange).toEqual({ min: 20, max: 25 });
+    expect(darkGaiwan.ratioMlPerGramRange).toBeUndefined();
     expect(darkZishaClay.ratioMlPerGram).toBe(20);
     expect(darkZishaClay.teaGrams).toBe(6.5);
   });
@@ -97,13 +95,13 @@ describe("recipe calculation", () => {
     ]);
   });
 
-  it("uses the revised white tea gaiwan-only ratio range, rinse, and six-to-seven infusion flow", () => {
+  it("uses the revised white tea gaiwan-only fixed ratio, rinse, and six-to-seven infusion flow", () => {
     const recipe = calculateRecipe({ teaType: "white", vessel: "gaiwan" });
 
     expect(recipe.vessel).toBe("gaiwan");
     expect(recipe.ratioMlPerGram).toBe(30);
-    expect(recipe.ratioMlPerGramRange).toEqual({ min: 20, max: 40 });
-    expect(recipe.teaGrams).toBe(3.5);
+    expect(recipe.ratioMlPerGramRange).toBeUndefined();
+    expect(recipe.teaGrams).toBe(3.7);
     expect(recipe.temperatureC).toBe(100);
     expect(recipe.rinseSeconds).toBe(0);
     expect(recipe.rinseDetailKey).toBe("white_rinse");
@@ -150,7 +148,7 @@ describe("recipe calculation", () => {
 
     expect(recipe.waterMl).toBe(230);
     expect(recipe.ratioMlPerGram).toBe(100);
-    expect(recipe.teaGrams).toBe(2.5);
+    expect(recipe.teaGrams).toBe(2.3);
     expect(recipe.temperatureCRange).toEqual({ min: 90, max: 100 });
     expect(recipe.infusions).toEqual([
       {
@@ -169,7 +167,7 @@ describe("recipe calculation", () => {
     ]);
   });
 
-  it("uses the revised black tea gaiwan temperature and six-infusion flow", () => {
+  it("uses the revised black tea gaiwan temperature and four-to-six infusion flow", () => {
     const recipe = calculateRecipe({
       teaType: "black",
       vessel: "gaiwan"
@@ -177,12 +175,17 @@ describe("recipe calculation", () => {
 
     expect(recipe.temperatureC).toBe(100);
     expect(recipe.temperatureCRange).toBeUndefined();
-    expect(recipe.infusions.map((infusion) => infusion.seconds)).toEqual([
-      20, 20, 25, 30, 40, 50
+    expect(recipe.infusions).toEqual([
+      { index: 1, seconds: 20 },
+      { index: 2, seconds: 20 },
+      { index: 3, seconds: 25 },
+      { index: 4, seconds: 30 },
+      { index: 5, seconds: 40, optional: true },
+      { index: 6, seconds: 50, optional: true }
     ]);
   });
 
-  it("uses the revised dark tea two-rinse flow and immediate early infusions", () => {
+  it("uses the revised dark tea two-rinse flow and eight-to-ten infusion flow", () => {
     const recipe = calculateRecipe({
       teaType: "dark",
       vessel: "gaiwan"
@@ -199,8 +202,17 @@ describe("recipe calculation", () => {
         detailKey: "immediate"
       }
     ]);
-    expect(recipe.infusions.map((infusion) => infusion.seconds)).toEqual([
-      0, 0, 0, 5, 10, 15, 20
+    expect(recipe.infusions).toEqual([
+      { index: 1, seconds: 0, detailKey: "immediate" },
+      { index: 2, seconds: 0, detailKey: "immediate" },
+      { index: 3, seconds: 0, detailKey: "immediate" },
+      { index: 4, seconds: 5 },
+      { index: 5, seconds: 10 },
+      { index: 6, seconds: 15 },
+      { index: 7, seconds: 20 },
+      { index: 8, seconds: 25 },
+      { index: 9, seconds: 30, optional: true },
+      { index: 10, seconds: 35, optional: true }
     ]);
   });
 
@@ -211,7 +223,7 @@ describe("recipe calculation", () => {
     });
 
     expect(recipe.waterMl).toBe(110);
-    expect(recipe.teaGrams).toBe(3.5);
+    expect(recipe.teaGrams).toBe(3.7);
     expect(recipe.ratioMlPerGram).toBe(30);
     expect(recipe.temperatureC).toBe(100);
     expect(recipe.infusions.map((infusion) => infusion.seconds)).toEqual([

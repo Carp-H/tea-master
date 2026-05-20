@@ -5,9 +5,10 @@ const darkTeaRinses = [
   { seconds: 0, detailKey: "immediate" as const }
 ];
 
-const darkTeaInfusions = [0, 0, 0, 5, 10, 15, 20].map((seconds) => ({
+const darkTeaInfusions = [0, 0, 0, 5, 10, 15, 20, 25, 30, 35].map((seconds, index) => ({
   seconds,
-  ...(seconds === 0 ? { detailKey: "immediate" as const } : {})
+  ...(seconds === 0 ? { detailKey: "immediate" as const } : {}),
+  ...(index >= 8 ? { optional: true } : {})
 }));
 
 export const brewingGuides: BrewingGuide[] = [
@@ -29,7 +30,6 @@ export const brewingGuides: BrewingGuide[] = [
     vessel: "gaiwan",
     vesselCapacityMl: 110,
     ratioMlPerGram: 30,
-    ratioMlPerGramRange: { min: 20, max: 40 },
     temperatureC: 100,
     rinseSeconds: 0,
     rinseDetailKey: "white_rinse",
@@ -49,7 +49,14 @@ export const brewingGuides: BrewingGuide[] = [
     vesselCapacityMl: 110,
     ratioMlPerGram: 30,
     temperatureC: 100,
-    infusionSeconds: [20, 20, 25, 30, 40, 50]
+    infusions: [
+      { seconds: 20 },
+      { seconds: 20 },
+      { seconds: 25 },
+      { seconds: 30 },
+      { seconds: 40, optional: true },
+      { seconds: 50, optional: true }
+    ]
   },
   {
     teaType: "black",
@@ -69,7 +76,6 @@ export const brewingGuides: BrewingGuide[] = [
     vessel: "gaiwan",
     vesselCapacityMl: 110,
     ratioMlPerGram: 15,
-    ratioMlPerGramRange: { min: 15, max: 20 },
     temperatureC: 95,
     temperatureCRange: { min: 95, max: 100 },
     infusionSeconds: [0, 0, 5, 10, 15, 20, 25]
@@ -79,7 +85,6 @@ export const brewingGuides: BrewingGuide[] = [
     vessel: "gaiwan",
     vesselCapacityMl: 110,
     ratioMlPerGram: 20,
-    ratioMlPerGramRange: { min: 20, max: 25 },
     temperatureC: 100,
     rinses: darkTeaRinses,
     infusions: darkTeaInfusions

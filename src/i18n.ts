@@ -3,6 +3,7 @@ import type { Language, TeaType, Vessel } from "./types";
 export interface Copy {
   appName: string;
   subtitle: string;
+  slogan: string;
   footerCredit: string;
   language: string;
   chooseTea: string;
@@ -24,6 +25,9 @@ export interface Copy {
   ratingOkay: string;
   exportImage: string;
   exportPdf: string;
+  saveRecipe: string;
+  saveAsImage: string;
+  saveAsPdf: string;
   feedbackComment: string;
   feedbackPlaceholder: string;
   submitFeedback: string;
@@ -60,11 +64,15 @@ export interface Copy {
   completed: string;
   readyToSipStatus: string;
   readyToSip: string;
+  rinseContinue: string;
+  rinseReadyToBrew: string;
+  immediateSipDetail: string;
   start: string;
   nextInfusion: string;
   pause: string;
   resume: string;
   reset: string;
+  closeTimer: string;
   pourOut: string;
   allDone: string;
   grams: string;
@@ -83,7 +91,8 @@ export const languageNames: Record<Language, string> = {
 export const copies: Record<Language, Copy> = {
   zh: {
     appName: "Tea Master",
-    subtitle: "选茶、选器、按主泡器容量生成泡茶流程",
+    subtitle: "世本无坏茶，只因不得法。",
+    slogan: "茶禅一味",
     footerCredit: "LH与Codex通力合作，诚意呈现。",
     language: "语言",
     chooseTea: "选择茶类",
@@ -105,6 +114,9 @@ export const copies: Record<Language, Copy> = {
     ratingOkay: "一般",
     exportImage: "导出图片",
     exportPdf: "导出 PDF",
+    saveRecipe: "保存我的泡茶配方",
+    saveAsImage: "以图片形式保存",
+    saveAsPdf: "以 PDF 格式保存",
     feedbackComment: "留言反馈",
     feedbackPlaceholder: "写下你的体验、建议或想保留的茶席笔记。",
     submitFeedback: "提交反馈",
@@ -141,11 +153,15 @@ export const copies: Record<Language, Copy> = {
     completed: "已完成",
     readyToSipStatus: "请品尝",
     readyToSip: "您的茶好了，请慢慢品尝。",
+    rinseContinue: "第一道润茶结束，请继续。",
+    rinseReadyToBrew: "您的茶润好了，开始冲泡吧！",
+    immediateSipDetail: "即冲即出，即时品饮。",
     start: "开始",
     nextInfusion: "开始下一泡",
     pause: "暂停",
     resume: "继续",
     reset: "重置",
+    closeTimer: "关闭计时器",
     pourOut: "出汤",
     allDone: "流程完成，可以按口味继续延长下一泡。",
     grams: "克",
@@ -167,7 +183,8 @@ export const copies: Record<Language, Copy> = {
   },
   en: {
     appName: "Tea Master",
-    subtitle: "Choose tea and vessel, then brew by vessel capacity",
+    subtitle: "No tea is born bad; only the way of brewing goes astray.",
+    slogan: "Taste Zen in Tea",
     footerCredit: "Designed with great passion by LH, in collaboration with Codex.",
     language: "Language",
     chooseTea: "Tea type",
@@ -189,6 +206,9 @@ export const copies: Record<Language, Copy> = {
     ratingOkay: "Okay",
     exportImage: "Export image",
     exportPdf: "Export PDF",
+    saveRecipe: "Save my brewing recipe",
+    saveAsImage: "Save as image",
+    saveAsPdf: "Save as PDF",
     feedbackComment: "Feedback note",
     feedbackPlaceholder: "Write your experience, suggestion, or tea-session note.",
     submitFeedback: "Submit feedback",
@@ -225,11 +245,15 @@ export const copies: Record<Language, Copy> = {
     completed: "Completed",
     readyToSipStatus: "Enjoy",
     readyToSip: "Your tea is ready. Sip slowly.",
+    rinseContinue: "The first rinse is done. Please continue.",
+    rinseReadyToBrew: "Your tea leaves are awakened. Start brewing.",
+    immediateSipDetail: "Pour out immediately, then sip right away.",
     start: "Start",
     nextInfusion: "Start next infusion",
     pause: "Pause",
     resume: "Resume",
     reset: "Reset",
+    closeTimer: "Close timer",
     pourOut: "Pour out",
     allDone: "Flow complete. Extend later infusions to taste.",
     grams: "g",
@@ -251,7 +275,8 @@ export const copies: Record<Language, Copy> = {
   },
   de: {
     appName: "Tea Master",
-    subtitle: "Tee und Gefäß wählen, dann nach Gefäßvolumen brühen",
+    subtitle: "Es gibt keinen schlechten Tee, nur falsche Zubereitung.",
+    slogan: "Tee und Zen - ein Geschmack",
     footerCredit: "Von LH herzlich gestaltet, in Zusammenarbeit mit Codex.",
     language: "Sprache",
     chooseTea: "Teeart",
@@ -273,6 +298,9 @@ export const copies: Record<Language, Copy> = {
     ratingOkay: "In Ordnung",
     exportImage: "Bild exportieren",
     exportPdf: "PDF exportieren",
+    saveRecipe: "Mein Brührezept speichern",
+    saveAsImage: "Als Bild speichern",
+    saveAsPdf: "Als PDF speichern",
     feedbackComment: "Feedback-Nachricht",
     feedbackPlaceholder: "Notieren Sie Ihre Erfahrung, Vorschläge oder Teerunden-Notizen.",
     submitFeedback: "Feedback senden",
@@ -309,11 +337,15 @@ export const copies: Record<Language, Copy> = {
     completed: "Fertig",
     readyToSipStatus: "Genießen",
     readyToSip: "Ihr Tee ist fertig. Genießen Sie ihn in Ruhe.",
+    rinseContinue: "Der erste Spülgang ist fertig. Bitte fortfahren.",
+    rinseReadyToBrew: "Die Teeblätter sind geweckt. Beginnen Sie mit dem Aufguss.",
+    immediateSipDetail: "Sofort abgießen und direkt genießen.",
     start: "Start",
     nextInfusion: "Nächsten Aufguss starten",
     pause: "Pause",
     resume: "Weiter",
     reset: "Zurücksetzen",
+    closeTimer: "Timer schließen",
     pourOut: "Abgießen",
     allDone: "Ablauf fertig. Weitere Aufgüsse nach Geschmack verlängern.",
     grams: "g",

@@ -8,8 +8,9 @@ describe("German copy", () => {
     expect(copies.de.teaNames.green).toBe("Grüntee");
     expect(copies.de.teaNames.white).toBe("Weißer Tee");
     expect(copies.de.subtitle).toBe(
-      "Tee und Gefäß wählen, dann nach Gefäßvolumen brühen"
+      "Es gibt keinen schlechten Tee, nur falsche Zubereitung."
     );
+    expect(copies.de.slogan).toBe("Tee und Zen - ein Geschmack");
     expect(copies.de.readyToSip).toBe(
       "Ihr Tee ist fertig. Genießen Sie ihn in Ruhe."
     );

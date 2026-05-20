@@ -1,4 +1,5 @@
 import {
+  Download,
   FileImage,
   FileText,
   Frown,
@@ -7,9 +8,11 @@ import {
   Play,
   RotateCcw,
   Send,
-  Smile
+  Smile,
+  X
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getRecommendedVessels, teaProfiles } from "./data/teaProfiles";
 import { copies, interpolate, languageNames } from "./i18n";
 import { calculateRecipe } from "./lib/calculateRecipe";
@@ -37,6 +40,13 @@ interface TimerStep {
 interface TimerStepSelection {
   index: number;
   version: number;
+  startOnOpen?: boolean;
+}
+
+interface TimerSnapshot {
+  stepIndex: number;
+  remainingSeconds: number;
+  status: TimerStatus;
 }
 
 interface EditableParameters {
@@ -45,9 +55,6 @@ interface EditableParameters {
   ratioMlPerGram: string;
   ratioRangeMin?: string;
   ratioRangeMax?: string;
-  temperatureC: string;
-  temperatureRangeMin?: string;
-  temperatureRangeMax?: string;
 }
 
 const languages: Language[] = ["zh", "en", "de"];
@@ -107,20 +114,18 @@ function App() {
     [activeVessel, language, teaType]
   );
   const [editableParameters, setEditableParameters] = useState(() =>
-    createEditableParameters(recommendedRecipe)
+    createEditableParameters(recommendedRecipe, language)
   );
 
   useEffect(() => {
-    setEditableParameters(createEditableParameters(recommendedRecipe));
+    setEditableParameters(createEditableParameters(recommendedRecipe, language));
   }, [
     activeVessel,
+    language,
     recommendedRecipe.ratioMlPerGram,
     recommendedRecipe.ratioMlPerGramRange?.max,
     recommendedRecipe.ratioMlPerGramRange?.min,
     recommendedRecipe.teaGrams,
-    recommendedRecipe.temperatureC,
-    recommendedRecipe.temperatureCRange?.max,
-    recommendedRecipe.temperatureCRange?.min,
     recommendedRecipe.waterMl,
     teaType
   ]);
@@ -142,31 +147,15 @@ function App() {
       teaType
     ]
   );
-  const [activeTimerStepIndex, setActiveTimerStepIndex] = useState(0);
-  const [timerStepSelection, setTimerStepSelection] =
-    useState<TimerStepSelection>({ index: 0, version: 0 });
-
-  function selectTimerStep(stepIndex: number) {
-    setActiveTimerStepIndex(stepIndex);
-    setTimerStepSelection((selection) => ({
-      index: stepIndex,
-      version: selection.version + 1
-    }));
-  }
-
   function updateWaterMlInput(waterMl: string) {
     setEditableParameters((parameters) =>
-      recalculateTeaGrams({ ...parameters, waterMl })
+      recalculateTeaGrams({ ...parameters, waterMl }, language)
     );
-  }
-
-  function updateTeaGramsInput(teaGrams: string) {
-    setEditableParameters((parameters) => ({ ...parameters, teaGrams }));
   }
 
   function updateRatioInput(ratioMlPerGram: string) {
     setEditableParameters((parameters) =>
-      recalculateTeaGrams({ ...parameters, ratioMlPerGram })
+      recalculateTeaGrams({ ...parameters, ratioMlPerGram }, language)
     );
   }
 
@@ -176,31 +165,12 @@ function App() {
         ...parameters,
         ratioMlPerGram: ratioRangeMin,
         ratioRangeMin
-      })
+      }, language)
     );
   }
 
   function updateRatioRangeMaxInput(ratioRangeMax: string) {
     setEditableParameters((parameters) => ({ ...parameters, ratioRangeMax }));
-  }
-
-  function updateTemperatureInput(temperatureC: string) {
-    setEditableParameters((parameters) => ({ ...parameters, temperatureC }));
-  }
-
-  function updateTemperatureRangeMinInput(temperatureRangeMin: string) {
-    setEditableParameters((parameters) => ({
-      ...parameters,
-      temperatureC: temperatureRangeMin,
-      temperatureRangeMin
-    }));
-  }
-
-  function updateTemperatureRangeMaxInput(temperatureRangeMax: string) {
-    setEditableParameters((parameters) => ({
-      ...parameters,
-      temperatureRangeMax
-    }));
   }
 
   return (
@@ -211,20 +181,23 @@ function App() {
           <h1>{copy.appName}</h1>
           <p className="subtitle">{copy.subtitle}</p>
         </div>
-        <label className="languagePicker">
-          <span>{copy.language}</span>
-          <select
-            aria-label={copy.language}
-            value={language}
-            onChange={(event) => setLanguage(event.target.value as Language)}
-          >
-            {languages.map((code) => (
-              <option key={code} value={code}>
-                {languageNames[code]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="headerAside">
+          <label className="languagePicker">
+            <span>{copy.language}</span>
+            <select
+              aria-label={copy.language}
+              value={language}
+              onChange={(event) => setLanguage(event.target.value as Language)}
+            >
+              {languages.map((code) => (
+                <option key={code} value={code}>
+                  {languageNames[code]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="slogan">{copy.slogan}</p>
+        </div>
       </header>
 
       <main className="workspace">
@@ -266,13 +239,9 @@ function App() {
             recipe={recipe}
             editableParameters={editableParameters}
             onWaterMlInputChange={updateWaterMlInput}
-            onTeaGramsInputChange={updateTeaGramsInput}
             onRatioInputChange={updateRatioInput}
             onRatioRangeMinInputChange={updateRatioRangeMinInput}
             onRatioRangeMaxInputChange={updateRatioRangeMaxInput}
-            onTemperatureInputChange={updateTemperatureInput}
-            onTemperatureRangeMinInputChange={updateTemperatureRangeMinInput}
-            onTemperatureRangeMaxInputChange={updateTemperatureRangeMaxInput}
           />
         </section>
 
@@ -280,23 +249,10 @@ function App() {
           <BrewingFlow
             copy={copy}
             recipe={recipe}
-            activeStepIndex={activeTimerStepIndex}
-            onStepSelect={selectTimerStep}
+            editableParameters={editableParameters}
           />
-          <div className="sideStack">
-            <GuidedTimer
-              copy={copy}
-              recipe={recipe}
-              selectedStep={timerStepSelection}
-              onActiveStepChange={setActiveTimerStepIndex}
-            />
-            <FeedbackPanel
-              copy={copy}
-              editableParameters={editableParameters}
-              recipe={recipe}
-            />
-          </div>
         </section>
+        <FeedbackPanel copy={copy} recipe={recipe} />
       </main>
       <footer className="siteFooter">
         <p>{copy.footerCredit}</p>
@@ -348,39 +304,28 @@ interface RecipeDisplayProps {
 interface RecipeSummaryProps extends RecipeDisplayProps {
   editableParameters: EditableParameters;
   onWaterMlInputChange: (waterMl: string) => void;
-  onTeaGramsInputChange: (teaGrams: string) => void;
   onRatioInputChange: (ratioMlPerGram: string) => void;
   onRatioRangeMinInputChange: (ratioRangeMin: string) => void;
   onRatioRangeMaxInputChange: (ratioRangeMax: string) => void;
-  onTemperatureInputChange: (temperatureC: string) => void;
-  onTemperatureRangeMinInputChange: (temperatureRangeMin: string) => void;
-  onTemperatureRangeMaxInputChange: (temperatureRangeMax: string) => void;
 }
 
 interface BrewingFlowProps extends RecipeDisplayProps {
-  activeStepIndex: number;
-  onStepSelect: (stepIndex: number) => void;
-}
-
-interface FeedbackPanelProps extends RecipeDisplayProps {
   editableParameters: EditableParameters;
 }
+
+type FeedbackPanelProps = RecipeDisplayProps;
 
 function RecipeSummary({
   copy,
   recipe,
   editableParameters,
   onWaterMlInputChange,
-  onTeaGramsInputChange,
   onRatioInputChange,
   onRatioRangeMinInputChange,
-  onRatioRangeMaxInputChange,
-  onTemperatureInputChange,
-  onTemperatureRangeMinInputChange,
-  onTemperatureRangeMaxInputChange
+  onRatioRangeMaxInputChange
 }: RecipeSummaryProps) {
   const formattedRatio = formatEditableRatio(editableParameters);
-  const formattedTemperature = formatEditableTemperature(editableParameters);
+  const formattedTemperature = formatRecipeTemperature(recipe);
 
   return (
     <div className="summaryGrid">
@@ -410,21 +355,10 @@ function RecipeSummary({
         </div>
       </div>
       <div className="metric">
-        <label className="metricLabel" htmlFor="tea-grams-input">
-          {copy.teaAmount}
-        </label>
-        <div className="metricInputValue" data-testid="tea-amount" data-value={editableParameters.teaGrams}>
-          <input
-            id="tea-grams-input"
-            type="number"
-            min="0.1"
-            step="0.1"
-            aria-label={copy.teaAmount}
-            value={editableParameters.teaGrams}
-            onChange={(event) => onTeaGramsInputChange(event.currentTarget.value)}
-          />
-          <span>{copy.grams}</span>
-        </div>
+        <span className="metricLabel">{copy.teaAmount}</span>
+        <strong data-testid="tea-amount" data-value={editableParameters.teaGrams}>
+          {editableParameters.teaGrams} {copy.grams}
+        </strong>
       </div>
       <div className="metric">
         <label className="metricLabel" htmlFor="ratio-input">
@@ -438,7 +372,7 @@ function RecipeSummary({
               <input
                 id="ratio-input"
                 type="number"
-                min="1"
+                min={getRatioInputMin(editableParameters.ratioRangeMin)}
                 step="10"
                 aria-label={`${copy.ratio} ${copy.rangeMinLabel}`}
                 value={editableParameters.ratioRangeMin}
@@ -449,7 +383,7 @@ function RecipeSummary({
               <span>–1:</span>
               <input
                 type="number"
-                min="1"
+                min={getRatioInputMin(editableParameters.ratioRangeMax)}
                 step="10"
                 aria-label={`${copy.ratio} ${copy.rangeMaxLabel}`}
                 value={editableParameters.ratioRangeMax}
@@ -464,7 +398,7 @@ function RecipeSummary({
               <input
                 id="ratio-input"
                 type="number"
-                min="1"
+                min={getRatioInputMin(editableParameters.ratioMlPerGram)}
                 step="10"
                 aria-label={copy.ratio}
                 value={editableParameters.ratioMlPerGram}
@@ -475,54 +409,10 @@ function RecipeSummary({
         </div>
       </div>
       <div className="metric">
-        <label className="metricLabel" htmlFor="temperature-input">
-          {copy.temperature}
-        </label>
-        <div className="metricInputValue temperatureInputValue" data-testid="temperature" data-value={formattedTemperature}>
-          {editableParameters.temperatureRangeMin !== undefined &&
-          editableParameters.temperatureRangeMax !== undefined ? (
-            <>
-              <input
-                id="temperature-input"
-                type="number"
-                min="0"
-                step="5"
-                aria-label={`${copy.temperature} ${copy.rangeMinLabel}`}
-                value={editableParameters.temperatureRangeMin}
-                onChange={(event) =>
-                  onTemperatureRangeMinInputChange(event.currentTarget.value)
-                }
-              />
-              <span>–</span>
-              <input
-                type="number"
-                min="0"
-                step="5"
-                aria-label={`${copy.temperature} ${copy.rangeMaxLabel}`}
-                value={editableParameters.temperatureRangeMax}
-                onChange={(event) =>
-                  onTemperatureRangeMaxInputChange(event.currentTarget.value)
-                }
-              />
-              <span>°C</span>
-            </>
-          ) : (
-            <>
-              <input
-                id="temperature-input"
-                type="number"
-                min="0"
-                step="5"
-                aria-label={copy.temperature}
-                value={editableParameters.temperatureC}
-                onChange={(event) =>
-                  onTemperatureInputChange(event.currentTarget.value)
-                }
-              />
-              <span>°C</span>
-            </>
-          )}
-        </div>
+        <span className="metricLabel">{copy.temperature}</span>
+        <strong data-testid="temperature" data-value={formattedTemperature}>
+          {formattedTemperature}
+        </strong>
       </div>
       <div className="metric">
         <span className="metricLabel">{copy.infusionCount}</span>
@@ -540,10 +430,56 @@ function RecipeSummary({
 function BrewingFlow({
   copy,
   recipe,
-  activeStepIndex,
-  onStepSelect
+  editableParameters
 }: BrewingFlowProps) {
-  const steps = buildTimerSteps(copy, recipe);
+  const steps = useMemo(() => buildTimerSteps(copy, recipe), [copy, recipe]);
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [timerStepSelection, setTimerStepSelection] =
+    useState<TimerStepSelection>({ index: 0, version: 0 });
+  const [timerSnapshot, setTimerSnapshot] = useState<TimerSnapshot>(() => ({
+    stepIndex: 0,
+    remainingSeconds: steps[0]?.seconds ?? 0,
+    status: "idle"
+  }));
+  const [isTimerOpen, setIsTimerOpen] = useState(false);
+
+  useEffect(() => {
+    setActiveStepIndex(0);
+    setTimerSnapshot({
+      stepIndex: 0,
+      remainingSeconds: steps[0]?.seconds ?? 0,
+      status: "idle"
+    });
+    setTimerStepSelection((selection) => ({
+      index: 0,
+      version: selection.version + 1
+    }));
+    setIsTimerOpen(false);
+  }, [steps]);
+
+  function selectStep(stepIndex: number) {
+    setActiveStepIndex(stepIndex);
+  }
+
+  function openTimerForStep(stepIndex: number) {
+    setActiveStepIndex(stepIndex);
+
+    if (
+      !isTimerOpen &&
+      timerSnapshot.stepIndex === stepIndex &&
+      (timerSnapshot.status === "running" || timerSnapshot.status === "paused")
+    ) {
+      setIsTimerOpen(true);
+      return;
+    }
+
+    setTimerStepSelection((selection) => ({
+      index: stepIndex,
+      version: selection.version + 1,
+      startOnOpen: true
+    }));
+    setIsTimerOpen(true);
+  }
 
   return (
     <section className="flowPanel" aria-labelledby="flow-heading">
@@ -561,6 +497,14 @@ function BrewingFlow({
         {steps.map((step, index) => {
           const isActive = index === activeStepIndex;
           const stepDetail = formatStepDetail(step, copy);
+          const shouldShowInlineTimer =
+            !isTimerOpen &&
+            timerSnapshot.stepIndex === index &&
+            (timerSnapshot.status === "running" ||
+              timerSnapshot.status === "paused");
+          const stepButtonLabel = shouldShowInlineTimer
+            ? formatClock(timerSnapshot.remainingSeconds)
+            : copy.start;
 
           return (
             <li
@@ -568,39 +512,158 @@ function BrewingFlow({
               className={isActive ? "selectableStep activeStep" : "selectableStep"}
               aria-current={isActive ? "step" : undefined}
               aria-label={`${step.label} ${stepDetail}`}
-              role="button"
               tabIndex={0}
-              onClick={() => onStepSelect(index)}
+              onClick={() => selectStep(index)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  onStepSelect(index);
+                  selectStep(index);
                 }
               }}
             >
               <span className="stepNumber">{index + 1}</span>
-              <div>
+              <div className="stepContent">
                 <strong>{step.label}</strong>
                 <p>{stepDetail}</p>
               </div>
+              <button
+                type="button"
+                className={
+                  shouldShowInlineTimer
+                    ? "stepTimerButton inlineTimerActive"
+                    : "stepTimerButton"
+                }
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openTimerForStep(index);
+                }}
+              >
+                <Play size={15} aria-hidden="true" />
+                {stepButtonLabel}
+              </button>
             </li>
           );
         })}
       </ol>
+      <RecipeSaveControls
+        copy={copy}
+        recipe={recipe}
+        editableParameters={editableParameters}
+      />
+      <GuidedTimer
+        copy={copy}
+        recipe={recipe}
+        selectedStep={timerStepSelection}
+        isOpen={isTimerOpen}
+        onClose={() => setIsTimerOpen(false)}
+        onActiveStepChange={setActiveStepIndex}
+        onTimerSnapshotChange={setTimerSnapshot}
+      />
     </section>
+  );
+}
+
+interface RecipeSaveControlsProps extends RecipeDisplayProps {
+  editableParameters: EditableParameters;
+}
+
+function RecipeSaveControls({
+  copy,
+  recipe,
+  editableParameters
+}: RecipeSaveControlsProps) {
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [exportStatus, setExportStatus] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function closeOnOutsidePointer(event: PointerEvent) {
+      const target = event.target;
+
+      if (target instanceof Node && controlsRef.current?.contains(target)) {
+        return;
+      }
+
+      setIsOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () =>
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [isOpen]);
+
+  function handleImageExport() {
+    try {
+      downloadRecipeImage(copy, recipe, editableParameters);
+      setExportStatus(copy.imageExported);
+      setIsOpen(false);
+    } catch {
+      setExportStatus(copy.exportFailed);
+    }
+  }
+
+  function handlePdfExport() {
+    try {
+      openRecipePdfWindow(copy, recipe, editableParameters);
+      setExportStatus(copy.pdfOpened);
+      setIsOpen(false);
+    } catch {
+      setExportStatus(copy.exportFailed);
+    }
+  }
+
+  return (
+    <div className="recipeSaveControls" ref={controlsRef}>
+      <button
+        type="button"
+        className="recipeSaveToggle"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
+      >
+        <Download size={18} />
+        {copy.saveRecipe}
+      </button>
+      {isOpen ? (
+        <div
+          className="recipeSaveOptions"
+          role="menu"
+          aria-label={copy.saveRecipe}
+        >
+          <button type="button" role="menuitem" onClick={handleImageExport}>
+            <FileImage size={18} />
+            {copy.saveAsImage}
+          </button>
+          <button type="button" role="menuitem" onClick={handlePdfExport}>
+            <FileText size={18} />
+            {copy.saveAsPdf}
+          </button>
+        </div>
+      ) : null}
+      {exportStatus ? <p className="exportStatus">{exportStatus}</p> : null}
+    </div>
   );
 }
 
 interface GuidedTimerProps extends RecipeDisplayProps {
   selectedStep: TimerStepSelection;
+  isOpen: boolean;
+  onClose: () => void;
   onActiveStepChange: (stepIndex: number) => void;
+  onTimerSnapshotChange: (snapshot: TimerSnapshot) => void;
 }
 
 function GuidedTimer({
   copy,
   recipe,
   selectedStep,
-  onActiveStepChange
+  isOpen,
+  onClose,
+  onActiveStepChange,
+  onTimerSnapshotChange
 }: GuidedTimerProps) {
   const steps = useMemo(() => buildTimerSteps(copy, recipe), [copy, recipe]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -618,6 +681,14 @@ function GuidedTimer({
   }, [currentStepIndex, onActiveStepChange]);
 
   useEffect(() => {
+    onTimerSnapshotChange({
+      stepIndex: currentStepIndex,
+      remainingSeconds,
+      status
+    });
+  }, [currentStepIndex, onTimerSnapshotChange, remainingSeconds, status]);
+
+  useEffect(() => {
     const nextStep = steps[selectedStep.index];
 
     if (!nextStep) {
@@ -626,8 +697,12 @@ function GuidedTimer({
 
     setCurrentStepIndex(selectedStep.index);
     setRemainingSeconds(nextStep.seconds);
-    setStatus("idle");
-  }, [selectedStep.index, selectedStep.version]);
+    setStatus(
+      selectedStep.startOnOpen
+        ? getStartedTimerStatus(selectedStep.index, nextStep.seconds, steps)
+        : "idle"
+    );
+  }, [selectedStep.index, selectedStep.startOnOpen, selectedStep.version, steps]);
 
   function beginStep(stepIndex: number) {
     const nextSeconds = steps[stepIndex]?.seconds ?? 0;
@@ -666,6 +741,10 @@ function GuidedTimer({
 
   const currentStep = steps[currentStepIndex];
   const isStepDone = status === "steeped" || status === "completed";
+  const shouldShowNextForZeroStep =
+    currentStep !== undefined &&
+    currentStep.seconds <= 0 &&
+    currentStepIndex < steps.length - 1;
   const statusText = {
     idle: copy.ready,
     running: copy.running,
@@ -679,108 +758,156 @@ function GuidedTimer({
       ? copy.pause
       : status === "paused"
         ? copy.resume
-        : status === "steeped"
+        : status === "steeped" || shouldShowNextForZeroStep
           ? copy.nextInfusion
           : copy.start;
 
-  return (
-    <section className="timerPanel" aria-labelledby="timer-heading">
-      <div className="sectionHeader compact">
-        <h2 id="timer-heading">{copy.timer}</h2>
-        <span className={`statusPill ${status}`}>{statusText}</span>
-      </div>
-      <div className="timerFace">
-        <p>{currentStep?.label ?? copy.allDone}</p>
-        <strong data-testid="timer-display">
-          {formatClock(remainingSeconds)}
-        </strong>
-        <span>
-          {isStepDone
-            ? copy.readyToSip
-            : currentStep
-              ? formatStepDetail(currentStep, copy)
-              : copy.ready}
-        </span>
-      </div>
-      <div className="timerActions">
-        {status === "completed" ? null : (
+  if (!isOpen) {
+    return null;
+  }
+
+  return createPortal(
+    <div className="timerOverlay">
+      <section
+        className="timerDialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="timer-heading"
+      >
+        <div className="sectionHeader compact">
+          <h2 id="timer-heading">{copy.timer}</h2>
+          <div className="timerDialogControls">
+            <span className={`statusPill ${status}`}>{statusText}</span>
+            <button
+              type="button"
+              className="timerCloseButton"
+              aria-label={copy.closeTimer}
+              onClick={onClose}
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        <div className="timerFace">
+          <p>{currentStep?.label ?? copy.allDone}</p>
+          <strong data-testid="timer-display">
+            {formatClock(remainingSeconds)}
+          </strong>
+          <span>{getTimerStepMessage(copy, steps, currentStepIndex, status)}</span>
+        </div>
+        <div className="timerActions">
+          {status === "completed" ? null : (
+            <button
+              type="button"
+              className="primaryAction"
+              onClick={() => {
+                if (status === "running") {
+                  setStatus("paused");
+                } else if (shouldShowNextForZeroStep) {
+                  beginStep(currentStepIndex + 1);
+                } else if (status === "steeped") {
+                  beginStep(currentStepIndex + 1);
+                } else if (status === "paused") {
+                  setStatus("running");
+                } else {
+                  beginStep(currentStepIndex);
+                }
+              }}
+            >
+              {status === "running" ? <Pause size={18} /> : <Play size={18} />}
+              {primaryLabel}
+            </button>
+          )}
           <button
             type="button"
-            className="primaryAction"
+            className="secondaryAction"
             onClick={() => {
-              if (status === "running") {
-                setStatus("paused");
-              } else if (status === "steeped") {
-                beginStep(currentStepIndex + 1);
-              } else if (status === "paused") {
-                setStatus("running");
-              } else {
-                beginStep(currentStepIndex);
-              }
+              setRemainingSeconds(currentStep?.seconds ?? 0);
+              setStatus("idle");
             }}
           >
-            {status === "running" ? <Pause size={18} /> : <Play size={18} />}
-            {primaryLabel}
+            <RotateCcw size={18} />
+            {copy.reset}
           </button>
+        </div>
+        {isStepDone || shouldShowNextForZeroStep ? null : (
+          <p className="pourHint">{currentStep?.hint ?? copy.pourOut}</p>
         )}
-        <button
-          type="button"
-          className="secondaryAction"
-          onClick={() => {
-            setCurrentStepIndex(0);
-            setRemainingSeconds(steps[0]?.seconds ?? 0);
-            setStatus("idle");
-          }}
-        >
-          <RotateCcw size={18} />
-          {copy.reset}
-        </button>
-      </div>
-      {isStepDone ? null : (
-        <p className="pourHint">{currentStep?.hint ?? copy.pourOut}</p>
-      )}
-    </section>
+      </section>
+    </div>,
+    document.body
   );
 }
 
-function FeedbackPanel({ copy, editableParameters, recipe }: FeedbackPanelProps) {
+function getStartedTimerStatus(
+  stepIndex: number,
+  seconds: number,
+  steps: TimerStep[]
+): TimerStatus {
+  if (seconds <= 0) {
+    return stepIndex >= steps.length - 1 ? "completed" : "steeped";
+  }
+
+  return "running";
+}
+
+function getTimerStepMessage(
+  copy: (typeof copies)["zh"],
+  steps: TimerStep[],
+  currentStepIndex: number,
+  status: TimerStatus
+) {
+  const currentStep = steps[currentStepIndex];
+  const nextStep = steps[currentStepIndex + 1];
+
+  if (!currentStep) {
+    return copy.ready;
+  }
+
+  if (currentStep.kind === "infusion" && currentStep.seconds <= 0) {
+    return copy.immediateSipDetail;
+  }
+
+  if (status === "steeped" || status === "completed") {
+    if (currentStep.kind === "rinse") {
+      return nextStep?.kind === "rinse"
+        ? copy.rinseContinue
+        : copy.rinseReadyToBrew;
+    }
+
+    return copy.readyToSip;
+  }
+
+  if (currentStep.kind === "rinse" && currentStep.seconds <= 0) {
+    return nextStep?.kind === "rinse" ? copy.rinseContinue : copy.rinseReadyToBrew;
+  }
+
+  return formatStepDetail(currentStep, copy);
+}
+
+function FeedbackPanel({ copy }: FeedbackPanelProps) {
   const [selectedRating, setSelectedRating] = useState<string | undefined>();
   const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackStatus, setFeedbackStatus] = useState("");
   const ratingOptions = [
     { id: "excellent", label: copy.ratingExcellent, Icon: Smile },
     { id: "good", label: copy.ratingGood, Icon: Meh },
     { id: "okay", label: copy.ratingOkay, Icon: Frown }
   ];
 
-  async function handleImageExport() {
-    try {
-      downloadRecipeImage(copy, recipe, editableParameters);
-      setFeedbackStatus(copy.imageExported);
-    } catch {
-      setFeedbackStatus(copy.exportFailed);
-    }
-  }
-
-  function handlePdfExport() {
-    try {
-      openRecipePdfWindow(copy, recipe, editableParameters);
-      setFeedbackStatus(copy.pdfOpened);
-    } catch {
-      setFeedbackStatus(copy.exportFailed);
-    }
-  }
-
   function handleSubmitFeedback() {
-    setFeedbackStatus(copy.feedbackSaved);
+    setFeedbackText(copy.feedbackSaved);
   }
 
   return (
-    <section className="feedbackPanel" aria-labelledby="feedback-heading">
+    <section
+      className="feedbackPanel"
+      aria-labelledby="feedback-heading"
+      data-layout="stacked"
+    >
       <div className="sectionHeader compact">
         <h2 id="feedback-heading">{copy.feedbackTitle}</h2>
       </div>
-      <div>
+      <div className="feedbackRatingBlock">
         <span className="controlLabel">{copy.feedbackRatingLabel}</span>
         <div className="ratingOptions">
           {ratingOptions.map((rating) => {
@@ -796,36 +923,30 @@ function FeedbackPanel({ copy, editableParameters, recipe }: FeedbackPanelProps)
                 onClick={() => setSelectedRating(rating.id)}
               >
                 <Icon size={26} aria-hidden="true" />
-                <span>{rating.label}</span>
               </button>
             );
           })}
         </div>
       </div>
-      <div className="exportActions">
-        <button type="button" onClick={handleImageExport}>
-          <FileImage size={18} />
-          {copy.exportImage}
-        </button>
-        <button type="button" onClick={handlePdfExport}>
-          <FileText size={18} />
-          {copy.exportPdf}
+      <div className="feedbackForm" data-testid="feedback-form">
+        <label className="feedbackTextarea">
+          <span className="controlLabel">{copy.feedbackComment}</span>
+          <textarea
+            aria-label={copy.feedbackComment}
+            placeholder={copy.feedbackPlaceholder}
+            value={feedbackText}
+            onChange={(event) => setFeedbackText(event.currentTarget.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="submitFeedback"
+          onClick={handleSubmitFeedback}
+        >
+          <Send size={18} />
+          {copy.submitFeedback}
         </button>
       </div>
-      <label className="feedbackTextarea">
-        <span className="controlLabel">{copy.feedbackComment}</span>
-        <textarea
-          aria-label={copy.feedbackComment}
-          placeholder={copy.feedbackPlaceholder}
-          value={feedbackText}
-          onChange={(event) => setFeedbackText(event.currentTarget.value)}
-        />
-      </label>
-      <button type="button" className="submitFeedback" onClick={handleSubmitFeedback}>
-        <Send size={18} />
-        {copy.submitFeedback}
-      </button>
-      {feedbackStatus ? <p className="feedbackStatus">{feedbackStatus}</p> : null}
     </section>
   );
 }
@@ -871,28 +992,27 @@ function parseWaterMl(value: string): number | undefined {
   return Number.isFinite(parsedValue) ? parsedValue : undefined;
 }
 
-function createEditableParameters(recipe: BrewingRecipe): EditableParameters {
+function createEditableParameters(
+  recipe: BrewingRecipe,
+  language: Language
+): EditableParameters {
   return {
     waterMl: String(recipe.waterMl),
-    teaGrams: formatNumber(recipe.teaGrams),
+    teaGrams: formatTeaAmount(recipe.teaGrams, language),
     ratioMlPerGram: String(recipe.ratioMlPerGram),
     ...(recipe.ratioMlPerGramRange
       ? {
           ratioRangeMin: String(recipe.ratioMlPerGramRange.min),
           ratioRangeMax: String(recipe.ratioMlPerGramRange.max)
         }
-      : {}),
-    temperatureC: String(recipe.temperatureC),
-    ...(recipe.temperatureCRange
-      ? {
-          temperatureRangeMin: String(recipe.temperatureCRange.min),
-          temperatureRangeMax: String(recipe.temperatureCRange.max)
-        }
       : {})
   };
 }
 
-function recalculateTeaGrams(parameters: EditableParameters): EditableParameters {
+function recalculateTeaGrams(
+  parameters: EditableParameters,
+  language: Language
+): EditableParameters {
   const waterMl = parsePositiveNumber(parameters.waterMl);
   const ratioMlPerGram = parsePositiveNumber(parameters.ratioMlPerGram);
 
@@ -902,7 +1022,7 @@ function recalculateTeaGrams(parameters: EditableParameters): EditableParameters
 
   return {
     ...parameters,
-    teaGrams: formatNumber(roundToTenth(waterMl / ratioMlPerGram))
+    teaGrams: formatTeaAmount(waterMl / ratioMlPerGram, language)
   };
 }
 
@@ -911,18 +1031,33 @@ function parsePositiveNumber(value: string): number | undefined {
     return undefined;
   }
 
-  const parsedValue = Number(value);
+  const parsedValue = Number(value.replace(",", "."));
   return Number.isFinite(parsedValue) && parsedValue > 0
     ? parsedValue
     : undefined;
+}
+
+function getRatioInputMin(value: string | undefined) {
+  const parsedValue =
+    value === undefined || value.trim() === ""
+      ? undefined
+      : Number(value.replace(",", "."));
+
+  if (parsedValue === undefined || !Number.isFinite(parsedValue)) {
+    return "10";
+  }
+
+  const remainder = Math.abs(parsedValue % 10);
+  return String(remainder === 0 ? 10 : remainder);
 }
 
 function roundToTenth(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : String(value);
+function formatTeaAmount(value: number, language: Language): string {
+  const normalizedValue = roundToTenth(value).toFixed(1);
+  return language === "de" ? normalizedValue.replace(".", ",") : normalizedValue;
 }
 
 function formatSeconds(seconds: number, unit: string) {
@@ -1012,15 +1147,12 @@ function formatEditableRatio(parameters: EditableParameters) {
   return `1:${parameters.ratioMlPerGram}`;
 }
 
-function formatEditableTemperature(parameters: EditableParameters) {
-  if (
-    parameters.temperatureRangeMin !== undefined &&
-    parameters.temperatureRangeMax !== undefined
-  ) {
-    return `${parameters.temperatureRangeMin}–${parameters.temperatureRangeMax}°C`;
+function formatRecipeTemperature(recipe: BrewingRecipe) {
+  if (recipe.temperatureCRange) {
+    return `${recipe.temperatureCRange.min}–${recipe.temperatureCRange.max}°C`;
   }
 
-  return `${parameters.temperatureC}°C`;
+  return `${recipe.temperatureC}°C`;
 }
 
 function formatRecommendedInfusionCount(recipe: BrewingRecipe) {
@@ -1154,7 +1286,7 @@ function buildRecipeCardLines(
     `${copy.water}: ${editableParameters.waterMl} ${copy.milliliters}`,
     `${copy.teaAmount}: ${editableParameters.teaGrams} ${copy.grams}`,
     `${copy.ratio}: ${formatEditableRatio(editableParameters)}`,
-    `${copy.temperature}: ${formatEditableTemperature(editableParameters)}`,
+    `${copy.temperature}: ${formatRecipeTemperature(recipe)}`,
     `${copy.infusionCount}: ${formatRecommendedInfusionCount(recipe)} ${copy.infusionCountUnit}`,
     `${copy.process}:`,
     `0. ${copy.prepare} - ${copy.prepareDetail}`,

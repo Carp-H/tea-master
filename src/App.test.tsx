@@ -14,7 +14,10 @@ describe("Tea Master app", () => {
     expect(screen.getByLabelText("Tea Master logo")).toBeInTheDocument();
     expect(screen.queryByText("TEA MASTER")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Language")).toHaveValue("en");
-    expect(screen.getByText("Choose tea and vessel, then brew by vessel capacity")).toBeInTheDocument();
+    expect(
+      screen.getByText("No tea is born bad; only the way of brewing goes astray.")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Taste Zen in Tea")).toBeInTheDocument();
     expect(
       screen.getByText("Designed with great passion by LH, in collaboration with Codex.")
     ).toBeInTheDocument();
@@ -60,7 +63,7 @@ describe("Tea Master app", () => {
 
     expect(screen.queryByText("喝茶人数")).not.toBeInTheDocument();
     expect(screen.getByRole("spinbutton", { name: "注水量" })).toHaveValue(230);
-    expect(screen.getByRole("spinbutton", { name: "投茶量" })).toHaveValue(2.5);
+    expect(screen.getByTestId("tea-amount")).toHaveTextContent("2.3 克");
     expect(screen.getByTestId("temperature").dataset.value).toBe("90–100°C");
   });
 
@@ -78,47 +81,74 @@ describe("Tea Master app", () => {
     await user.type(waterInput, "600");
 
     expect(waterInput).toHaveValue(600);
-    expect(screen.getByRole("spinbutton", { name: "投茶量" })).toHaveValue(20);
-    expect(screen.getByTestId("ratio").dataset.value).toBe("1:20–1:40");
+    expect(screen.getByTestId("tea-amount")).toHaveTextContent("20.0 克");
+    expect(screen.getByTestId("ratio").dataset.value).toBe("1:30");
   });
 
-  it("lets users edit tea leaves, ratio, and temperature with fixed step sizes", async () => {
+  it("keeps tea leaves calculated from water and ratio while temperature stays read-only", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.selectOptions(screen.getByLabelText("Language"), "zh");
 
-    const teaAmountInput = screen.getByRole("spinbutton", { name: "投茶量" });
-    const ratioInput = screen.getByRole("spinbutton", { name: "茶水比" });
-    const temperatureMinInput = screen.getByRole("spinbutton", {
-      name: "水温 下限"
-    });
-    const temperatureMaxInput = screen.getByRole("spinbutton", {
-      name: "水温 上限"
-    });
+    const waterInput = screen.getByRole("spinbutton", { name: "注水量" });
+    const teaAmount = screen.getByTestId("tea-amount");
+    const ratioInput = screen.getByRole("spinbutton", {
+      name: "茶水比"
+    }) as HTMLInputElement;
 
-    expect(teaAmountInput).toHaveAttribute("step", "0.1");
+    expect(within(teaAmount).queryByRole("textbox")).not.toBeInTheDocument();
     expect(ratioInput).toHaveAttribute("step", "10");
-    expect(temperatureMinInput).toHaveAttribute("step", "5");
-    expect(temperatureMaxInput).toHaveAttribute("step", "5");
-    expect(teaAmountInput).toHaveValue(2.5);
+    expect(screen.queryByRole("spinbutton", { name: "水温 下限" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton", { name: "水温 上限" })).not.toBeInTheDocument();
+    expect(teaAmount).toHaveTextContent("2.5 克");
     expect(ratioInput).toHaveValue(100);
-    expect(temperatureMinInput).toHaveValue(80);
-    expect(temperatureMaxInput).toHaveValue(100);
-
-    await user.clear(teaAmountInput);
-    await user.type(teaAmountInput, "3.2");
-    expect(teaAmountInput).toHaveValue(3.2);
+    expect(screen.getByTestId("temperature").dataset.value).toBe("80–100°C");
 
     await user.clear(ratioInput);
     await user.type(ratioInput, "110");
     expect(ratioInput).toHaveValue(110);
-    expect(teaAmountInput).toHaveValue(2.3);
+    expect(teaAmount).toHaveTextContent("2.3 克");
 
-    await user.clear(temperatureMinInput);
-    await user.type(temperatureMinInput, "85");
-    expect(temperatureMinInput).toHaveValue(85);
-    expect(screen.getByTestId("temperature").dataset.value).toBe("85–100°C");
+    await user.clear(waterInput);
+    await user.type(waterInput, "330");
+    expect(waterInput).toHaveValue(330);
+    expect(teaAmount).toHaveTextContent("3.0 克");
+  });
+
+  it("steps tea-water ratio inputs by ten from their current recommendation", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.selectOptions(screen.getByLabelText("Language"), "zh");
+    await user.click(screen.getByRole("tab", { name: "白茶" }));
+
+    const ratioInput = screen.getByRole("spinbutton", {
+      name: "茶水比"
+    }) as HTMLInputElement;
+    expect(ratioInput).toHaveValue(30);
+
+    act(() => {
+      ratioInput.stepUp();
+    });
+    fireEvent.input(ratioInput);
+
+    expect(ratioInput).toHaveValue(40);
+    expect(screen.getByTestId("tea-amount")).toHaveTextContent("2.8 克");
+  });
+
+  it("uses a decimal point in Chinese and English, and a decimal comma in German", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.selectOptions(screen.getByLabelText("Language"), "zh");
+    expect(screen.getByTestId("tea-amount").dataset.value).toBe("2.5");
+
+    await user.selectOptions(screen.getByLabelText("语言"), "en");
+    expect(screen.getByTestId("tea-amount").dataset.value).toBe("2.5");
+
+    await user.selectOptions(screen.getByLabelText("Language"), "de");
+    expect(screen.getByTestId("tea-amount").dataset.value).toBe("2,5");
   });
 
   it("shows the revised white tea gaiwan-only recommendation, rinse, and six-to-seven infusion flow", async () => {
@@ -135,7 +165,7 @@ describe("Tea Master app", () => {
     expect(
       within(vesselGroup).queryByRole("button", { name: "瓷壶" })
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId("ratio").dataset.value).toBe("1:20–1:40");
+    expect(screen.getByTestId("ratio").dataset.value).toBe("1:30");
     expect(screen.getByTestId("temperature").dataset.value).toBe("100°C");
     expect(screen.getByTestId("infusion-count")).toHaveTextContent("6–7 泡");
 
@@ -164,6 +194,17 @@ describe("Tea Master app", () => {
     expect(within(flow).getByText("可选第 7 泡").closest("li")).toHaveTextContent(
       "55 秒"
     );
+
+    await user.click(
+      within(within(flow).getByText("润茶").closest("li")!).getByRole("button", {
+        name: "开始"
+      })
+    );
+    expect(
+      within(screen.getByRole("dialog", { name: "逐泡计时" })).getByText(
+        "您的茶润好了，开始冲泡吧！"
+      )
+    ).toBeInTheDocument();
   });
 
   it("shows the revised dark tea gaiwan recommendation and two-rinse flow", async () => {
@@ -186,9 +227,9 @@ describe("Tea Master app", () => {
     expect(
       within(vesselGroup).queryByRole("button", { name: "陶壶" })
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId("ratio").dataset.value).toBe("1:20–1:25");
-    expect(screen.getByRole("spinbutton", { name: "投茶量" })).toHaveValue(5.5);
-    expect(screen.getByTestId("infusion-count")).toHaveTextContent("7 泡");
+    expect(screen.getByTestId("ratio").dataset.value).toBe("1:20");
+    expect(screen.getByTestId("tea-amount")).toHaveTextContent("5.5 克");
+    expect(screen.getByTestId("infusion-count")).toHaveTextContent("8–10 泡");
 
     const flow = screen.getByRole("region", { name: "泡茶流程" });
     const firstRinseStep = within(flow).getByText("润茶 1").closest("li");
@@ -211,8 +252,14 @@ describe("Tea Master app", () => {
     expect(within(flow).getByText("第 4 泡").closest("li")).toHaveTextContent(
       "5 秒"
     );
-    expect(within(flow).getByText("第 7 泡").closest("li")).toHaveTextContent(
-      "20 秒"
+    expect(within(flow).getByText("第 8 泡").closest("li")).toHaveTextContent(
+      "25 秒"
+    );
+    expect(within(flow).getByText("可选第 9 泡").closest("li")).toHaveTextContent(
+      "30 秒"
+    );
+    expect(within(flow).getByText("可选第 10 泡").closest("li")).toHaveTextContent(
+      "35 秒"
     );
   });
 
@@ -242,9 +289,14 @@ describe("Tea Master app", () => {
       "3–5 分钟"
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "开始" }));
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("02:00");
-    expect(screen.getByText("杯中浸泡")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "逐泡计时" })).not.toBeInTheDocument();
+    const firstInfusionStep = within(flow).getByText("第 1 泡").closest("li");
+    expect(firstInfusionStep).not.toBeNull();
+
+    fireEvent.click(within(firstInfusionStep!).getByRole("button", { name: "开始" }));
+    const timer = screen.getByRole("dialog", { name: "逐泡计时" });
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("02:00");
+    expect(within(timer).getByText("杯中浸泡")).toBeInTheDocument();
   });
 
   it("shows the revised black tea porcelain-pot recommendation and optional third infusion", async () => {
@@ -271,7 +323,7 @@ describe("Tea Master app", () => {
     );
   });
 
-  it("shows the revised black tea gaiwan temperature and six-infusion flow", async () => {
+  it("shows the revised black tea gaiwan temperature and four-to-six infusion flow", async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -283,6 +335,7 @@ describe("Tea Master app", () => {
       "true"
     );
     expect(screen.getByTestId("temperature").dataset.value).toBe("100°C");
+    expect(screen.getByTestId("infusion-count")).toHaveTextContent("4–6 泡");
 
     const flow = screen.getByRole("region", { name: "泡茶流程" });
     expect(within(flow).getByText("第 1 泡").closest("li")).toHaveTextContent(
@@ -297,23 +350,23 @@ describe("Tea Master app", () => {
     expect(within(flow).getByText("第 4 泡").closest("li")).toHaveTextContent(
       "30 秒"
     );
-    expect(within(flow).getByText("第 5 泡").closest("li")).toHaveTextContent(
+    expect(within(flow).getByText("可选第 5 泡").closest("li")).toHaveTextContent(
       "40 秒"
     );
-    expect(within(flow).getByText("第 6 泡").closest("li")).toHaveTextContent(
+    expect(within(flow).getByText("可选第 6 泡").closest("li")).toHaveTextContent(
       "50 秒"
     );
     expect(within(flow).queryByText("第 7 泡")).not.toBeInTheDocument();
   });
 
-  it("shows the revised oolong ratio range, temperature range, and immediate pours", async () => {
+  it("shows the revised oolong fixed ratio, temperature range, and immediate pours", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.selectOptions(screen.getByLabelText("Language"), "zh");
     await user.click(screen.getByRole("tab", { name: "乌龙" }));
 
-    expect(screen.getByTestId("ratio").dataset.value).toBe("1:15–1:20");
+    expect(screen.getByTestId("ratio").dataset.value).toBe("1:15");
     expect(screen.getByTestId("temperature").dataset.value).toBe("95–100°C");
 
     const flow = screen.getByRole("region", { name: "泡茶流程" });
@@ -330,25 +383,31 @@ describe("Tea Master app", () => {
     expect(within(flow).getByText("第 7 泡").closest("li")).toHaveTextContent(
       "25 秒"
     );
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("00:00");
+    expect(screen.queryByRole("dialog", { name: "逐泡计时" })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "开始" }));
-
-    expect(screen.getByText("您的茶好了，请慢慢品尝。")).toBeInTheDocument();
+    await user.click(
+      within(within(flow).getByText("第 1 泡").closest("li")!).getByRole("button", {
+        name: "开始"
+      })
+    );
+    const timer = screen.getByRole("dialog", { name: "逐泡计时" });
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:00");
+    expect(within(timer).queryByRole("button", { name: "开始" })).not.toBeInTheDocument();
+    expect(within(timer).getByText("即冲即出，即时品饮。")).toBeInTheDocument();
     expect(within(flow).getByText("第 1 泡").closest("li")).toHaveAttribute(
       "aria-current",
       "step"
     );
 
-    await user.click(screen.getByRole("button", { name: "开始下一泡" }));
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("00:00");
+    await user.click(within(timer).getByRole("button", { name: "开始下一泡" }));
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:00");
     expect(within(flow).getByText("第 2 泡").closest("li")).toHaveAttribute(
       "aria-current",
       "step"
     );
 
-    await user.click(screen.getByRole("button", { name: "开始下一泡" }));
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("00:05");
+    await user.click(within(timer).getByRole("button", { name: "开始下一泡" }));
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:05");
     expect(within(flow).getByText("第 3 泡").closest("li")).toHaveAttribute(
       "aria-current",
       "step"
@@ -380,24 +439,29 @@ describe("Tea Master app", () => {
     expect(
       screen.getByText("Von LH herzlich gestaltet, in Zusammenarbeit mit Codex.")
     ).toBeInTheDocument();
+    expect(
+      screen.getByText("Es gibt keinen schlechten Tee, nur falsche Zubereitung.")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Tee und Zen - ein Geschmack")).toBeInTheDocument();
+    expect(screen.queryByText("Tee und Zen - ein Geschmack.")).not.toBeInTheDocument();
   });
 
-  it("collects feedback and exposes recipe export actions", async () => {
+  it("collects icon-only feedback at the bottom of the page", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.selectOptions(screen.getByLabelText("Language"), "zh");
 
     const feedback = screen.getByRole("region", { name: "反馈与分享" });
-    expect(
-      within(feedback).getByRole("button", { name: "很满意" })
-    ).toBeInTheDocument();
-    expect(
-      within(feedback).getByRole("button", { name: "导出图片" })
-    ).toBeInTheDocument();
-    expect(
-      within(feedback).getByRole("button", { name: "导出 PDF" })
-    ).toBeInTheDocument();
+    expect(feedback).toHaveAttribute("data-layout", "stacked");
+    const mainSections = document.querySelectorAll("main > section");
+    expect(mainSections[mainSections.length - 1]).toBe(feedback);
+    expect(within(feedback).getByRole("button", { name: "很满意" })).toBeInTheDocument();
+    expect(within(feedback).getByRole("button", { name: "很满意" })).not.toHaveTextContent(
+      "很满意"
+    );
+    expect(within(feedback).queryByRole("button", { name: "导出图片" })).not.toBeInTheDocument();
+    expect(within(feedback).queryByRole("button", { name: "导出 PDF" })).not.toBeInTheDocument();
 
     await user.click(within(feedback).getByRole("button", { name: "很满意" }));
     expect(within(feedback).getByRole("button", { name: "很满意" })).toHaveAttribute(
@@ -405,35 +469,98 @@ describe("Tea Master app", () => {
       "true"
     );
 
+    const feedbackForm = within(feedback).getByTestId("feedback-form");
     await user.type(
-      within(feedback).getByLabelText("留言反馈"),
+      within(feedbackForm).getByLabelText("留言反馈"),
       "希望之后增加浓淡偏好。"
     );
-    await user.click(within(feedback).getByRole("button", { name: "提交反馈" }));
+    await user.click(within(feedbackForm).getByRole("button", { name: "提交反馈" }));
 
-    expect(within(feedback).getByText("反馈已记录，谢谢。")).toBeInTheDocument();
+    expect(within(feedbackForm).getByLabelText("留言反馈")).toHaveValue(
+      "反馈已记录，谢谢。"
+    );
+  });
+
+  it("opens recipe export options from the brewing flow", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.selectOptions(screen.getByLabelText("Language"), "zh");
+    const flow = screen.getByRole("region", { name: "泡茶流程" });
+
+    expect(
+      within(flow).queryByRole("menuitem", { name: "以图片形式保存" })
+    ).not.toBeInTheDocument();
+
+    await user.click(within(flow).getByRole("button", { name: "保存我的泡茶配方" }));
+
+    const exportMenu = within(flow).getByRole("menu", { name: "保存我的泡茶配方" });
+    expect(
+      within(exportMenu).getByRole("menuitem", { name: "以图片形式保存" })
+    ).toBeInTheDocument();
+    expect(
+      within(exportMenu).getByRole("menuitem", { name: "以 PDF 格式保存" })
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("heading", { name: "Tea Master" }));
+    expect(
+      within(flow).queryByRole("menu", { name: "保存我的泡茶配方" })
+    ).not.toBeInTheDocument();
   });
 
   it("runs the guided timer through start, pause, and reset", async () => {
     vi.useFakeTimers();
     render(<App />);
 
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("02:00");
+    const flow = screen.getByRole("region", { name: "Brewing flow" });
+    const firstStep = within(flow).getByText("Infusion 1").closest("li");
+    expect(firstStep).not.toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Infusion timer" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Start" }));
+    fireEvent.click(within(firstStep!).getByRole("button", { name: "Start" }));
+    const timer = screen.getByRole("dialog", { name: "Infusion timer" });
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("02:00");
+
     act(() => {
       vi.advanceTimersByTime(1000);
     });
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("01:59");
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("01:59");
 
-    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    fireEvent.click(within(timer).getByRole("button", { name: "Pause" }));
     act(() => {
       vi.advanceTimersByTime(3000);
     });
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("01:59");
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("01:59");
 
-    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("02:00");
+    fireEvent.click(within(timer).getByRole("button", { name: "Reset" }));
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("02:00");
+  });
+
+  it("keeps a closed running timer visible in its brewing step button", async () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    const flow = screen.getByRole("region", { name: "Brewing flow" });
+    const firstStep = within(flow).getByText("Infusion 1").closest("li");
+    expect(firstStep).not.toBeNull();
+
+    fireEvent.click(within(firstStep!).getByRole("button", { name: "Start" }));
+    const timer = screen.getByRole("dialog", { name: "Infusion timer" });
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("01:59");
+
+    fireEvent.click(within(timer).getByRole("button", { name: "Close timer" }));
+
+    expect(screen.queryByRole("dialog", { name: "Infusion timer" })).not.toBeInTheDocument();
+    expect(within(firstStep!).getByRole("button")).toHaveTextContent("01:59");
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(within(firstStep!).getByRole("button")).toHaveTextContent("01:58");
   });
 
   it("waits for the user before starting the next infusion and highlights the active flow step", async () => {
@@ -451,14 +578,19 @@ describe("Tea Master app", () => {
       "step"
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "开始" }));
+    fireEvent.click(
+      within(within(flow).getByText("润茶 1").closest("li")!).getByRole("button", {
+        name: "开始"
+      })
+    );
+    const timer = screen.getByRole("dialog", { name: "逐泡计时" });
     act(() => {
       vi.advanceTimersByTime(10000);
     });
 
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("00:00");
-    expect(screen.getByText("您的茶好了，请慢慢品尝。")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "开始下一泡" })).toBeInTheDocument();
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:00");
+    expect(within(timer).getByText("第一道润茶结束，请继续。")).toBeInTheDocument();
+    expect(within(timer).getByRole("button", { name: "开始下一泡" })).toBeInTheDocument();
     expect(within(flow).getByText("润茶 1").closest("li")).toHaveAttribute(
       "aria-current",
       "step"
@@ -467,9 +599,9 @@ describe("Tea Master app", () => {
       "aria-current"
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "开始下一泡" }));
+    fireEvent.click(within(timer).getByRole("button", { name: "开始下一泡" }));
 
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("00:00");
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:00");
     expect(within(flow).getByText("润茶 2").closest("li")).toHaveAttribute(
       "aria-current",
       "step"
@@ -479,7 +611,7 @@ describe("Tea Master app", () => {
     );
   });
 
-  it("lets users select a brewing flow step to reset the timer to that step", async () => {
+  it("opens a step-specific timer from the brewing flow", async () => {
     render(<App />);
 
     fireEvent.change(screen.getByLabelText("Language"), {
@@ -491,26 +623,62 @@ describe("Tea Master app", () => {
     const fourthInfusionStep = within(flow).getByText("第 4 泡").closest("li");
 
     expect(fourthInfusionStep).not.toBeNull();
-    fireEvent.click(fourthInfusionStep!);
+    fireEvent.click(
+      within(fourthInfusionStep!).getByRole("button", { name: "开始" })
+    );
+    const timer = screen.getByRole("dialog", { name: "逐泡计时" });
 
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("00:05");
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:05");
     expect(within(flow).getByText("第 4 泡").closest("li")).toHaveAttribute(
       "aria-current",
       "step"
     );
-    const timer = screen.getByRole("region", { name: "逐泡计时" });
     expect(
       within(timer).getByText("5 秒 · 计时结束后立即出汤。")
     ).toBeInTheDocument();
 
     const secondRinseStep = within(flow).getByText("润茶 2").closest("li");
     expect(secondRinseStep).not.toBeNull();
-    fireEvent.click(secondRinseStep!);
+    fireEvent.click(
+      within(secondRinseStep!).getByRole("button", { name: "开始" })
+    );
 
-    expect(screen.getByTestId("timer-display")).toHaveTextContent("00:00");
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:00");
     expect(within(flow).getByText("润茶 2").closest("li")).toHaveAttribute(
       "aria-current",
       "step"
     );
+  });
+
+  it("resets any step-specific timer to that step's own initial time", () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText("Language"), {
+      target: { value: "zh" }
+    });
+    fireEvent.click(screen.getByRole("tab", { name: "黑茶" }));
+
+    const flow = screen.getByRole("region", { name: "泡茶流程" });
+    const fourthInfusionStep = within(flow).getByText("第 4 泡").closest("li");
+    expect(fourthInfusionStep).not.toBeNull();
+
+    fireEvent.click(
+      within(fourthInfusionStep!).getByRole("button", { name: "开始" })
+    );
+
+    const timer = screen.getByRole("dialog", { name: "逐泡计时" });
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:05");
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:04");
+
+    fireEvent.click(within(timer).getByRole("button", { name: "重置" }));
+
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:05");
+    expect(within(timer).getByText("第 4 泡")).toBeInTheDocument();
+    expect(fourthInfusionStep).toHaveAttribute("aria-current", "step");
   });
 });

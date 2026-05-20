@@ -45,7 +45,7 @@ export function calculateRecipe(request: RecipeRequest): BrewingRecipe {
     teaType: request.teaType,
     vessel: request.vessel,
     waterMl,
-    teaGrams: roundToHalf(waterMl / guide.ratioMlPerGram),
+    teaGrams: roundToTenth(waterMl / guide.ratioMlPerGram),
     ratioMlPerGram: guide.ratioMlPerGram,
     ratioMlPerGramRange: guide.ratioMlPerGramRange,
     temperatureC: guide.temperatureC,
@@ -74,6 +74,6 @@ function resolveWaterMl(waterMl: number | undefined, fallbackWaterMl: number): n
   return Math.max(1, Math.round(waterMl));
 }
 
-function roundToHalf(value: number): number {
-  return Math.round(value * 2) / 2;
+function roundToTenth(value: number): number {
+  return Math.round(value * 10) / 10;
 }
