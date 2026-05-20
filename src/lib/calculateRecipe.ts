@@ -1,5 +1,6 @@
 import type {
   BrewingGuideInfusion,
+  BrewingGuideRinse,
   BrewingRecipe,
   RecipeRequest
 } from "../types";
@@ -23,6 +24,18 @@ export function calculateRecipe(request: RecipeRequest): BrewingRecipe {
 
   const recommendedWaterMl = guide.vesselCapacityMl;
   const waterMl = resolveWaterMl(request.waterMl, recommendedWaterMl);
+  const rinses: BrewingGuideRinse[] =
+    guide.rinses ??
+    (guide.rinseSeconds === undefined
+      ? []
+      : [
+          {
+            seconds: guide.rinseSeconds,
+            ...(guide.rinseDetailKey
+              ? { detailKey: guide.rinseDetailKey }
+              : {})
+          }
+        ]);
   const infusions: BrewingGuideInfusion[] =
     guide.infusions ??
     guide.infusionSeconds?.map((seconds) => ({ seconds })) ??
@@ -37,6 +50,11 @@ export function calculateRecipe(request: RecipeRequest): BrewingRecipe {
     ratioMlPerGramRange: guide.ratioMlPerGramRange,
     temperatureC: guide.temperatureC,
     temperatureCRange: guide.temperatureCRange,
+    rinses: rinses.map((rinse, index) => ({
+      index: index + 1,
+      seconds: rinse.seconds,
+      ...(rinse.detailKey ? { detailKey: rinse.detailKey } : {})
+    })),
     rinseSeconds: guide.rinseSeconds,
     rinseDetailKey: guide.rinseDetailKey,
     infusions: infusions.map((infusion, index) => ({

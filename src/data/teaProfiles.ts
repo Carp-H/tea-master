@@ -5,7 +5,7 @@ const vesselRecommendations: Record<TeaType, Vessel[]> = {
   white: ["gaiwan"],
   black: ["gaiwan", "porcelain_pot"],
   oolong: ["gaiwan"],
-  dark: ["gaiwan", "zisha_pot", "clay_pot"]
+  dark: ["gaiwan", "zisha_clay_pot"]
 };
 
 export const teaProfiles: TeaProfile[] = Object.entries(vesselRecommendations).map(

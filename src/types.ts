@@ -9,8 +9,7 @@ export type Vessel =
   | "glass_cup"
   | "gaiwan"
   | "porcelain_pot"
-  | "zisha_pot"
-  | "clay_pot";
+  | "zisha_clay_pot";
 
 export type Language = "zh" | "en" | "de";
 
@@ -43,6 +42,12 @@ export interface InfusionStep {
   optional?: boolean;
 }
 
+export interface RinseStep {
+  index: number;
+  seconds: number;
+  detailKey?: InfusionDetailKey;
+}
+
 export interface NumericRange {
   min: number;
   max: number;
@@ -57,6 +62,7 @@ export interface BrewingRecipe {
   ratioMlPerGramRange?: NumericRange;
   temperatureC: number;
   temperatureCRange?: NumericRange;
+  rinses: RinseStep[];
   rinseSeconds?: number;
   rinseDetailKey?: InfusionDetailKey;
   infusions: InfusionStep[];
@@ -68,6 +74,11 @@ export interface BrewingGuideInfusion {
   optional?: boolean;
 }
 
+export interface BrewingGuideRinse {
+  seconds: number;
+  detailKey?: InfusionDetailKey;
+}
+
 export interface BrewingGuide {
   teaType: TeaType;
   vessel: Vessel;
@@ -76,6 +87,7 @@ export interface BrewingGuide {
   ratioMlPerGramRange?: NumericRange;
   temperatureC: number;
   temperatureCRange?: NumericRange;
+  rinses?: BrewingGuideRinse[];
   rinseSeconds?: number;
   rinseDetailKey?: InfusionDetailKey;
   infusionSeconds?: number[];

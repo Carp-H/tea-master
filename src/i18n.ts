@@ -3,6 +3,7 @@ import type { Language, TeaType, Vessel } from "./types";
 export interface Copy {
   appName: string;
   subtitle: string;
+  footerCredit: string;
   language: string;
   chooseTea: string;
   recommendedVessel: string;
@@ -12,11 +13,31 @@ export interface Copy {
   teaAmount: string;
   ratio: string;
   temperature: string;
+  infusionCount: string;
+  infusionCountUnit: string;
+  rangeMinLabel: string;
+  rangeMaxLabel: string;
+  feedbackTitle: string;
+  feedbackRatingLabel: string;
+  ratingExcellent: string;
+  ratingGood: string;
+  ratingOkay: string;
+  exportImage: string;
+  exportPdf: string;
+  feedbackComment: string;
+  feedbackPlaceholder: string;
+  submitFeedback: string;
+  feedbackSaved: string;
+  imageExported: string;
+  pdfOpened: string;
+  exportFailed: string;
   process: string;
   prepare: string;
   prepareDetail: string;
   rinse: string;
+  rinseWithIndex: string;
   rinseDetail: string;
+  rinseImmediateDetail: string;
   rinseDiscardHint: string;
   infusion: string;
   optionalInfusion: string;
@@ -63,6 +84,7 @@ export const copies: Record<Language, Copy> = {
   zh: {
     appName: "Tea Master",
     subtitle: "选茶、选器、按主泡器容量生成泡茶流程",
+    footerCredit: "LH与Codex通力合作，诚意呈现。",
     language: "语言",
     chooseTea: "选择茶类",
     recommendedVessel: "推荐主泡器",
@@ -72,11 +94,31 @@ export const copies: Record<Language, Copy> = {
     teaAmount: "投茶量",
     ratio: "茶水比",
     temperature: "水温",
+    infusionCount: "推荐冲泡次数",
+    infusionCountUnit: "泡",
+    rangeMinLabel: "下限",
+    rangeMaxLabel: "上限",
+    feedbackTitle: "反馈与分享",
+    feedbackRatingLabel: "评价体验",
+    ratingExcellent: "很满意",
+    ratingGood: "不错",
+    ratingOkay: "一般",
+    exportImage: "导出图片",
+    exportPdf: "导出 PDF",
+    feedbackComment: "留言反馈",
+    feedbackPlaceholder: "写下你的体验、建议或想保留的茶席笔记。",
+    submitFeedback: "提交反馈",
+    feedbackSaved: "反馈已记录，谢谢。",
+    imageExported: "配方图片已保存。",
+    pdfOpened: "PDF 保存窗口已打开。",
+    exportFailed: "导出未完成，请再试一次。",
     process: "泡茶流程",
     prepare: "准备",
     prepareDetail: "温杯洁具，放入茶叶，备好推荐水温。",
     rinse: "润茶",
+    rinseWithIndex: "润茶 {index}",
     rinseDetail: "快速注水后倒出，用来唤醒茶叶。",
+    rinseImmediateDetail: "即进即出，用来继续唤醒茶叶。",
     rinseDiscardHint: "小提示：润茶倒出的茶水不饮用。",
     infusion: "第 {index} 泡",
     optionalInfusion: "可选第 {index} 泡",
@@ -120,13 +162,13 @@ export const copies: Record<Language, Copy> = {
       glass_cup: "玻璃杯",
       gaiwan: "盖碗",
       porcelain_pot: "瓷壶",
-      zisha_pot: "紫砂壶",
-      clay_pot: "陶壶"
+      zisha_clay_pot: "紫砂壶/陶壶"
     }
   },
   en: {
     appName: "Tea Master",
     subtitle: "Choose tea and vessel, then brew by vessel capacity",
+    footerCredit: "Designed with great passion by LH, in collaboration with Codex.",
     language: "Language",
     chooseTea: "Tea type",
     recommendedVessel: "Recommended vessel",
@@ -136,11 +178,31 @@ export const copies: Record<Language, Copy> = {
     teaAmount: "Tea leaves",
     ratio: "Tea-water ratio",
     temperature: "Water temp",
+    infusionCount: "Recommended infusions",
+    infusionCountUnit: "infusions",
+    rangeMinLabel: "minimum",
+    rangeMaxLabel: "maximum",
+    feedbackTitle: "Feedback & sharing",
+    feedbackRatingLabel: "Rate the experience",
+    ratingExcellent: "Loved it",
+    ratingGood: "Good",
+    ratingOkay: "Okay",
+    exportImage: "Export image",
+    exportPdf: "Export PDF",
+    feedbackComment: "Feedback note",
+    feedbackPlaceholder: "Write your experience, suggestion, or tea-session note.",
+    submitFeedback: "Submit feedback",
+    feedbackSaved: "Feedback recorded. Thank you.",
+    imageExported: "Recipe image saved.",
+    pdfOpened: "PDF save window opened.",
+    exportFailed: "Export did not finish. Please try again.",
     process: "Brewing flow",
     prepare: "Prepare",
     prepareDetail: "Warm the vessel, add tea leaves, and prepare water.",
     rinse: "Rinse",
+    rinseWithIndex: "Rinse {index}",
     rinseDetail: "Pour in water briefly, then discard it to wake the leaves.",
+    rinseImmediateDetail: "Pour in and out immediately to keep waking the leaves.",
     rinseDiscardHint: "Tip: Do not drink the rinse liquor.",
     infusion: "Infusion {index}",
     optionalInfusion: "Optional infusion {index}",
@@ -184,13 +246,13 @@ export const copies: Record<Language, Copy> = {
       glass_cup: "Glass cup",
       gaiwan: "Gaiwan",
       porcelain_pot: "Porcelain pot",
-      zisha_pot: "Zisha pot",
-      clay_pot: "Clay pot"
+      zisha_clay_pot: "Zisha/clay pot"
     }
   },
   de: {
     appName: "Tea Master",
     subtitle: "Tee und Gefäß wählen, dann nach Gefäßvolumen brühen",
+    footerCredit: "Von LH herzlich gestaltet, in Zusammenarbeit mit Codex.",
     language: "Sprache",
     chooseTea: "Teeart",
     recommendedVessel: "Empfohlenes Gefäß",
@@ -200,11 +262,31 @@ export const copies: Record<Language, Copy> = {
     teaAmount: "Teemenge",
     ratio: "Tee-Wasser-Verhältnis",
     temperature: "Wassertemperatur",
+    infusionCount: "Empfohlene Aufgüsse",
+    infusionCountUnit: "Aufgüsse",
+    rangeMinLabel: "Minimum",
+    rangeMaxLabel: "Maximum",
+    feedbackTitle: "Feedback & Teilen",
+    feedbackRatingLabel: "Erlebnis bewerten",
+    ratingExcellent: "Sehr zufrieden",
+    ratingGood: "Gut",
+    ratingOkay: "In Ordnung",
+    exportImage: "Bild exportieren",
+    exportPdf: "PDF exportieren",
+    feedbackComment: "Feedback-Nachricht",
+    feedbackPlaceholder: "Notieren Sie Ihre Erfahrung, Vorschläge oder Teerunden-Notizen.",
+    submitFeedback: "Feedback senden",
+    feedbackSaved: "Feedback wurde notiert. Vielen Dank.",
+    imageExported: "Rezeptbild gespeichert.",
+    pdfOpened: "PDF-Speicherfenster wurde geöffnet.",
+    exportFailed: "Export nicht abgeschlossen. Bitte erneut versuchen.",
     process: "Brühablauf",
     prepare: "Vorbereiten",
     prepareDetail: "Gefäß vorwärmen, Tee einfüllen und Wasser vorbereiten.",
     rinse: "Spülen",
+    rinseWithIndex: "Spülen {index}",
     rinseDetail: "Kurz aufgießen und abgießen, um die Blätter zu wecken.",
+    rinseImmediateDetail: "Sofort aufgießen und abgießen, um die Blätter weiter zu wecken.",
     rinseDiscardHint: "Hinweis: Der Spülaufguss wird nicht getrunken.",
     infusion: "Aufguss {index}",
     optionalInfusion: "Optionaler Aufguss {index}",
@@ -248,8 +330,7 @@ export const copies: Record<Language, Copy> = {
       glass_cup: "Glasbecher",
       gaiwan: "Gaiwan",
       porcelain_pot: "Porzellankanne",
-      zisha_pot: "Zisha-Kanne",
-      clay_pot: "Tonkanne"
+      zisha_clay_pot: "Zisha-/Tonkanne"
     }
   }
 };

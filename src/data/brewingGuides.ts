@@ -1,5 +1,15 @@
 import type { BrewingGuide, TeaType, Vessel } from "../types";
 
+const darkTeaRinses = [
+  { seconds: 10 },
+  { seconds: 0, detailKey: "immediate" as const }
+];
+
+const darkTeaInfusions = [0, 0, 0, 5, 10, 15, 20].map((seconds) => ({
+  seconds,
+  ...(seconds === 0 ? { detailKey: "immediate" as const } : {})
+}));
+
 export const brewingGuides: BrewingGuide[] = [
   {
     teaType: "green",
@@ -68,28 +78,20 @@ export const brewingGuides: BrewingGuide[] = [
     teaType: "dark",
     vessel: "gaiwan",
     vesselCapacityMl: 110,
-    ratioMlPerGram: 25,
+    ratioMlPerGram: 20,
+    ratioMlPerGramRange: { min: 20, max: 25 },
     temperatureC: 100,
-    rinseSeconds: 10,
-    infusionSeconds: [10, 15, 25, 40, 60]
+    rinses: darkTeaRinses,
+    infusions: darkTeaInfusions
   },
   {
     teaType: "dark",
-    vessel: "zisha_pot",
+    vessel: "zisha_clay_pot",
     vesselCapacityMl: 130,
     ratioMlPerGram: 20,
     temperatureC: 100,
-    rinseSeconds: 10,
-    infusionSeconds: [12, 18, 28, 45, 65]
-  },
-  {
-    teaType: "dark",
-    vessel: "clay_pot",
-    vesselCapacityMl: 150,
-    ratioMlPerGram: 20,
-    temperatureC: 100,
-    rinseSeconds: 10,
-    infusionSeconds: [15, 20, 30, 50, 70]
+    rinses: darkTeaRinses,
+    infusions: darkTeaInfusions
   }
 ];
 

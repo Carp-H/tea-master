@@ -8,7 +8,10 @@ describe("tea vessel recommendations", () => {
     expect(getRecommendedVessels("white")).toEqual(["gaiwan"]);
     expect(getRecommendedVessels("black")).toEqual(["gaiwan", "porcelain_pot"]);
     expect(getRecommendedVessels("oolong")).toEqual(["gaiwan"]);
-    expect(getRecommendedVessels("dark")).toEqual(["gaiwan", "zisha_pot", "clay_pot"]);
+    expect(getRecommendedVessels("dark")).toEqual([
+      "gaiwan",
+      "zisha_clay_pot"
+    ]);
   });
 
   it("only exposes the simplified tea set", () => {
@@ -38,8 +41,10 @@ describe("recipe calculation", () => {
     });
     const oolong = calculateRecipe({ teaType: "oolong", vessel: "gaiwan" });
     const darkGaiwan = calculateRecipe({ teaType: "dark", vessel: "gaiwan" });
-    const darkZisha = calculateRecipe({ teaType: "dark", vessel: "zisha_pot" });
-    const darkClay = calculateRecipe({ teaType: "dark", vessel: "clay_pot" });
+    const darkZishaClay = calculateRecipe({
+      teaType: "dark",
+      vessel: "zisha_clay_pot"
+    });
 
     expect(green.ratioMlPerGram).toBe(100);
     expect(green.teaGrams).toBe(2.5);
@@ -52,11 +57,10 @@ describe("recipe calculation", () => {
     expect(oolong.ratioMlPerGram).toBe(15);
     expect(oolong.ratioMlPerGramRange).toEqual({ min: 15, max: 20 });
     expect(oolong.teaGrams).toBe(7.5);
-    expect(darkGaiwan.ratioMlPerGram).toBe(25);
-    expect(darkZisha.ratioMlPerGram).toBe(20);
-    expect(darkZisha.teaGrams).toBe(6.5);
-    expect(darkClay.ratioMlPerGram).toBe(20);
-    expect(darkClay.teaGrams).toBe(7.5);
+    expect(darkGaiwan.ratioMlPerGram).toBe(20);
+    expect(darkGaiwan.ratioMlPerGramRange).toEqual({ min: 20, max: 25 });
+    expect(darkZishaClay.ratioMlPerGram).toBe(20);
+    expect(darkZishaClay.teaGrams).toBe(6.5);
   });
 
   it("uses the revised oolong temperature range and seven-infusion flow", () => {
@@ -178,6 +182,28 @@ describe("recipe calculation", () => {
     ]);
   });
 
+  it("uses the revised dark tea two-rinse flow and immediate early infusions", () => {
+    const recipe = calculateRecipe({
+      teaType: "dark",
+      vessel: "gaiwan"
+    });
+
+    expect(recipe.rinses).toEqual([
+      {
+        index: 1,
+        seconds: 10
+      },
+      {
+        index: 2,
+        seconds: 0,
+        detailKey: "immediate"
+      }
+    ]);
+    expect(recipe.infusions.map((infusion) => infusion.seconds)).toEqual([
+      0, 0, 0, 5, 10, 15, 20
+    ]);
+  });
+
   it("calculates vessel-capacity values from tea type and selected vessel", () => {
     const recipe = calculateRecipe({
       teaType: "white",
@@ -198,17 +224,17 @@ describe("recipe calculation", () => {
       teaType: "dark",
       vessel: "gaiwan"
     });
-    const zisha = calculateRecipe({
+    const zishaClay = calculateRecipe({
       teaType: "dark",
-      vessel: "zisha_pot"
+      vessel: "zisha_clay_pot"
     });
 
     expect(gaiwan.waterMl).toBe(110);
-    expect(gaiwan.teaGrams).toBe(4.5);
-    expect(gaiwan.rinseSeconds).toBe(10);
-    expect(zisha.waterMl).toBe(130);
-    expect(zisha.teaGrams).toBe(6.5);
-    expect(zisha.ratioMlPerGram).not.toBe(gaiwan.ratioMlPerGram);
+    expect(gaiwan.teaGrams).toBe(5.5);
+    expect(gaiwan.rinses.map((rinse) => rinse.seconds)).toEqual([10, 0]);
+    expect(zishaClay.waterMl).toBe(130);
+    expect(zishaClay.teaGrams).toBe(6.5);
+    expect(zishaClay.ratioMlPerGram).toBe(gaiwan.ratioMlPerGram);
   });
 
   it("uses a manually edited water amount to recalculate tea grams from the recommended ratio", () => {

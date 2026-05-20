@@ -21,7 +21,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -43,7 +44,8 @@ button:disabled {
 }
 
 .topBar,
-.workspace {
+.workspace,
+.siteFooter {
   width: min(1180px, 100%);
   margin: 0 auto;
 }
@@ -56,12 +58,57 @@ button:disabled {
   padding: 8px 0 28px;
 }
 
-.eyebrow {
-  margin: 0 0 6px;
-  color: #8b5d2b;
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
+.brandLogo {
+  display: inline-flex;
+  align-items: center;
+  width: 88px;
+  height: 48px;
+  margin: 0 0 8px;
+  color: #2b6f58;
+}
+
+.brandLogoMark {
+  display: block;
+  width: 88px;
+  height: 48px;
+  overflow: visible;
+}
+
+.brandLogoCupBowl,
+.brandLogoHandle,
+.brandLogoSaucer,
+.brandLogoSteam,
+.brandLogoTeaLine {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.brandLogoCupBowl {
+  fill: #eef6ef;
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+
+.brandLogoSteam {
+  stroke-width: 2;
+  opacity: 0.68;
+}
+
+.brandLogoHandle,
+.brandLogoTeaLine {
+  stroke-width: 2;
+}
+
+.brandLogoTeaLine,
+.brandLogoSaucer {
+  stroke: #c99b50;
+}
+
+.brandLogoSaucer {
+  stroke-width: 2;
+  opacity: 0.82;
 }
 
 h1,
@@ -83,9 +130,11 @@ h2 {
 }
 
 .subtitle {
+  min-width: 0;
   max-width: 540px;
   margin-bottom: 0;
   color: #56645d;
+  overflow-wrap: anywhere;
 }
 
 .languagePicker {
@@ -111,10 +160,23 @@ h2 {
   gap: 18px;
 }
 
+.siteFooter {
+  padding: 22px 0 4px;
+  text-align: center;
+}
+
+.siteFooter p {
+  margin-bottom: 0;
+  color: #7b857d;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
 .controlPanel,
 .recommendationBand,
 .flowPanel,
-.timerPanel {
+.timerPanel,
+.feedbackPanel {
   border: 1px solid #d9ded1;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.86);
@@ -148,6 +210,7 @@ h2 {
 
 .teaTabs button,
 .segmented button {
+  min-width: 0;
   min-height: 40px;
   border: 1px solid #ccd6c8;
   border-radius: 8px;
@@ -155,6 +218,8 @@ h2 {
   background: #ffffff;
   color: #26322b;
   font-weight: 700;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .teaTabs button.active,
@@ -184,46 +249,58 @@ h2 {
   font-weight: 800;
 }
 
-.timerActions button {
+.timerActions button,
+.ratingOptions button,
+.exportActions button,
+.submitFeedback {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-width: 0;
   min-height: 42px;
   border-radius: 8px;
   border: 1px solid #cbd4c8;
   background: #ffffff;
   color: #1f3028;
   font-weight: 800;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
 .metric {
   display: grid;
   gap: 6px;
+  min-width: 0;
   min-height: 92px;
   border-left: 4px solid #c99b50;
   border-radius: 8px;
   padding: 14px;
   background: #fbfaf5;
+  overflow-wrap: anywhere;
 }
 
 .metricLabel {
+  min-width: 0;
   color: #66736b;
   font-size: 0.86rem;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .metric strong,
 .metricInputValue {
+  min-width: 0;
   color: #18221d;
   font-size: 1.25rem;
   font-weight: 900;
+  overflow-wrap: anywhere;
 }
 
 .metricInputValue {
@@ -251,19 +328,29 @@ h2 {
 }
 
 .metricInputValue span {
+  min-width: 0;
   color: #18221d;
   white-space: nowrap;
 }
 
 .flowArea {
   display: grid;
-  grid-template-columns: 1.18fr 0.82fr;
+  grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr);
   gap: 18px;
   align-items: start;
 }
 
+.sideStack {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  min-width: 0;
+}
+
 .flowPanel,
-.timerPanel {
+.timerPanel,
+.feedbackPanel {
+  min-width: 0;
   padding: 20px;
 }
 
@@ -277,8 +364,9 @@ h2 {
 
 .stepList li {
   display: grid;
-  grid-template-columns: 34px 1fr;
+  grid-template-columns: 34px minmax(0, 1fr);
   gap: 12px;
+  min-width: 0;
   min-height: 72px;
   padding: 12px;
   border: 1px solid #e2e5db;
@@ -286,9 +374,32 @@ h2 {
   background: #ffffff;
 }
 
+.stepList li > div {
+  min-width: 0;
+}
+
 .stepList li.activeStep {
   border-color: #b9d8bf;
   background: #f0f8f0;
+}
+
+.stepList li.selectableStep {
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.stepList li.selectableStep:hover {
+  border-color: #b9d8bf;
+  background: #f7fbf6;
+}
+
+.stepList li.selectableStep:focus-visible {
+  border-color: #2b6f58;
+  outline: 2px solid rgba(43, 111, 88, 0.26);
+  outline-offset: 2px;
 }
 
 .stepList li.activeStep .stepNumber {
@@ -310,12 +421,18 @@ h2 {
 
 .stepList strong {
   display: block;
+  min-width: 0;
   margin-bottom: 4px;
+  overflow-wrap: anywhere;
 }
 
 .stepList p {
+  min-width: 0;
   margin-bottom: 0;
   color: #5b6862;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .statusPill {
@@ -350,27 +467,37 @@ h2 {
 .timerFace {
   display: grid;
   gap: 8px;
+  min-width: 0;
   min-height: 190px;
   border: 1px solid #e0e5dc;
   border-radius: 8px;
   padding: 20px;
   background: #17251f;
   color: #ffffff;
+  overflow-wrap: anywhere;
 }
 
 .timerFace p {
+  min-width: 0;
   margin-bottom: 0;
   color: #cfe2d6;
   font-weight: 900;
+  overflow-wrap: anywhere;
 }
 
 .timerFace strong {
+  min-width: 0;
   font-size: 3.5rem;
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .timerFace span {
+  min-width: 0;
   color: #d7dfd9;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .timerActions {
@@ -392,9 +519,104 @@ h2 {
 }
 
 .pourHint {
+  min-width: 0;
   margin: 12px 0 0;
   color: #8b5d2b;
   font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.feedbackPanel {
+  display: grid;
+  gap: 16px;
+}
+
+.ratingOptions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ratingOptions button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-height: 78px;
+  padding: 10px 8px;
+  color: #2f4b3f;
+}
+
+.ratingOptions button svg {
+  color: #2b6f58;
+}
+
+.ratingOptions button span,
+.exportActions button,
+.submitFeedback {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.ratingOptions button.active,
+.ratingOptions button[aria-pressed="true"] {
+  border-color: #2b6f58;
+  background: #eef6ef;
+  color: #173126;
+}
+
+.exportActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.exportActions button,
+.submitFeedback {
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.feedbackTextarea {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.feedbackTextarea textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 96px;
+  border: 1px solid #cbd4c8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  resize: vertical;
+  background: #ffffff;
+  color: #18221d;
+  overflow-wrap: anywhere;
+}
+
+.feedbackTextarea textarea:focus {
+  border-color: #2b6f58;
+  outline: 2px solid rgba(43, 111, 88, 0.22);
+  outline-offset: 1px;
+}
+
+.submitFeedback {
+  justify-self: start;
+  border-color: #2b6f58;
+  background: #2b6f58;
+  color: #ffffff;
+}
+
+.feedbackStatus {
+  min-width: 0;
+  margin: -4px 0 0;
+  color: #2b6f58;
+  font-size: 0.9rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 860px) {
@@ -423,6 +645,11 @@ h2 {
 
 @media (max-width: 520px) {
   .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ratingOptions,
+  .exportActions {
     grid-template-columns: 1fr;
   }
 
