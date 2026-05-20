@@ -18,20 +18,13 @@ export interface Copy {
   infusionCountUnit: string;
   rangeMinLabel: string;
   rangeMaxLabel: string;
-  feedbackTitle: string;
-  feedbackRatingLabel: string;
-  ratingExcellent: string;
-  ratingGood: string;
-  ratingOkay: string;
   exportImage: string;
   exportPdf: string;
   saveRecipe: string;
   saveAsImage: string;
+  saveAsPng: string;
+  saveAsJpeg: string;
   saveAsPdf: string;
-  feedbackComment: string;
-  feedbackPlaceholder: string;
-  submitFeedback: string;
-  feedbackSaved: string;
   imageExported: string;
   pdfOpened: string;
   exportFailed: string;
@@ -93,7 +86,7 @@ export const copies: Record<Language, Copy> = {
     appName: "Tea Master",
     subtitle: "世本无坏茶，只因不得法。",
     slogan: "茶禅一味",
-    footerCredit: "LH与Codex通力合作，诚意呈现。",
+    footerCredit: "LH x Codex, 诚意呈现。",
     language: "语言",
     chooseTea: "选择茶类",
     recommendedVessel: "推荐主泡器",
@@ -107,22 +100,15 @@ export const copies: Record<Language, Copy> = {
     infusionCountUnit: "泡",
     rangeMinLabel: "下限",
     rangeMaxLabel: "上限",
-    feedbackTitle: "反馈与分享",
-    feedbackRatingLabel: "评价体验",
-    ratingExcellent: "很满意",
-    ratingGood: "不错",
-    ratingOkay: "一般",
     exportImage: "导出图片",
     exportPdf: "导出 PDF",
     saveRecipe: "保存我的泡茶配方",
     saveAsImage: "以图片形式保存",
+    saveAsPng: "保存为 PNG 图片",
+    saveAsJpeg: "保存为 JPEG 图片",
     saveAsPdf: "以 PDF 格式保存",
-    feedbackComment: "留言反馈",
-    feedbackPlaceholder: "写下你的体验、建议或想保留的茶席笔记。",
-    submitFeedback: "提交反馈",
-    feedbackSaved: "反馈已记录，谢谢。",
     imageExported: "配方图片已保存。",
-    pdfOpened: "PDF 保存窗口已打开。",
+    pdfOpened: "配方 PDF 已保存。",
     exportFailed: "导出未完成，请再试一次。",
     process: "泡茶流程",
     prepare: "准备",
@@ -199,22 +185,15 @@ export const copies: Record<Language, Copy> = {
     infusionCountUnit: "infusions",
     rangeMinLabel: "minimum",
     rangeMaxLabel: "maximum",
-    feedbackTitle: "Feedback & sharing",
-    feedbackRatingLabel: "Rate the experience",
-    ratingExcellent: "Loved it",
-    ratingGood: "Good",
-    ratingOkay: "Okay",
     exportImage: "Export image",
     exportPdf: "Export PDF",
     saveRecipe: "Save my brewing recipe",
     saveAsImage: "Save as image",
+    saveAsPng: "Save as PNG",
+    saveAsJpeg: "Save as JPEG",
     saveAsPdf: "Save as PDF",
-    feedbackComment: "Feedback note",
-    feedbackPlaceholder: "Write your experience, suggestion, or tea-session note.",
-    submitFeedback: "Submit feedback",
-    feedbackSaved: "Feedback recorded. Thank you.",
     imageExported: "Recipe image saved.",
-    pdfOpened: "PDF save window opened.",
+    pdfOpened: "Recipe PDF saved.",
     exportFailed: "Export did not finish. Please try again.",
     process: "Brewing flow",
     prepare: "Prepare",
@@ -291,22 +270,15 @@ export const copies: Record<Language, Copy> = {
     infusionCountUnit: "Aufgüsse",
     rangeMinLabel: "Minimum",
     rangeMaxLabel: "Maximum",
-    feedbackTitle: "Feedback & Teilen",
-    feedbackRatingLabel: "Erlebnis bewerten",
-    ratingExcellent: "Sehr zufrieden",
-    ratingGood: "Gut",
-    ratingOkay: "In Ordnung",
     exportImage: "Bild exportieren",
     exportPdf: "PDF exportieren",
     saveRecipe: "Mein Brührezept speichern",
     saveAsImage: "Als Bild speichern",
+    saveAsPng: "Als PNG speichern",
+    saveAsJpeg: "Als JPEG speichern",
     saveAsPdf: "Als PDF speichern",
-    feedbackComment: "Feedback-Nachricht",
-    feedbackPlaceholder: "Notieren Sie Ihre Erfahrung, Vorschläge oder Teerunden-Notizen.",
-    submitFeedback: "Feedback senden",
-    feedbackSaved: "Feedback wurde notiert. Vielen Dank.",
     imageExported: "Rezeptbild gespeichert.",
-    pdfOpened: "PDF-Speicherfenster wurde geöffnet.",
+    pdfOpened: "Rezept-PDF gespeichert.",
     exportFailed: "Export nicht abgeschlossen. Bitte erneut versuchen.",
     process: "Brühablauf",
     prepare: "Vorbereiten",

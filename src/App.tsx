@@ -2,23 +2,33 @@ import {
   Download,
   FileImage,
   FileText,
-  Frown,
-  Meh,
   Pause,
   Play,
   RotateCcw,
-  Send,
-  Smile,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getRecommendedVessels, teaProfiles } from "./data/teaProfiles";
-import { copies, interpolate, languageNames } from "./i18n";
+import { copies, languageNames } from "./i18n";
 import { calculateRecipe } from "./lib/calculateRecipe";
+import {
+  buildTimerSteps,
+  downloadRecipeImage,
+  downloadRecipePdf,
+  formatEditableRatio,
+  formatRecipeTemperature,
+  formatRecommendedInfusionCount,
+  formatStepDetail,
+  imageExportFormats
+} from "./lib/recipeExport";
+import type {
+  EditableParameters,
+  ImageExportFormat,
+  TimerStep
+} from "./lib/recipeExport";
 import type {
   BrewingRecipe,
-  InfusionDetailKey,
   Language,
   TeaType,
   Vessel
@@ -26,16 +36,6 @@ import type {
 import "./styles.css";
 
 type TimerStatus = "idle" | "running" | "paused" | "steeped" | "completed";
-
-interface TimerStep {
-  id: string;
-  label: string;
-  detail: string;
-  seconds: number;
-  durationLabel?: string;
-  hint?: string;
-  kind: "rinse" | "infusion";
-}
 
 interface TimerStepSelection {
   index: number;
@@ -47,14 +47,6 @@ interface TimerSnapshot {
   stepIndex: number;
   remainingSeconds: number;
   status: TimerStatus;
-}
-
-interface EditableParameters {
-  waterMl: string;
-  teaGrams: string;
-  ratioMlPerGram: string;
-  ratioRangeMin?: string;
-  ratioRangeMax?: string;
 }
 
 const languages: Language[] = ["zh", "en", "de"];
@@ -252,7 +244,6 @@ function App() {
             editableParameters={editableParameters}
           />
         </section>
-        <FeedbackPanel copy={copy} recipe={recipe} />
       </main>
       <footer className="siteFooter">
         <p>{copy.footerCredit}</p>
@@ -312,8 +303,6 @@ interface RecipeSummaryProps extends RecipeDisplayProps {
 interface BrewingFlowProps extends RecipeDisplayProps {
   editableParameters: EditableParameters;
 }
-
-type FeedbackPanelProps = RecipeDisplayProps;
 
 function RecipeSummary({
   copy,
@@ -596,9 +585,9 @@ function RecipeSaveControls({
       document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [isOpen]);
 
-  function handleImageExport() {
+  async function handleImageExport(format: ImageExportFormat) {
     try {
-      downloadRecipeImage(copy, recipe, editableParameters);
+      await downloadRecipeImage(copy, recipe, editableParameters, format);
       setExportStatus(copy.imageExported);
       setIsOpen(false);
     } catch {
@@ -606,9 +595,9 @@ function RecipeSaveControls({
     }
   }
 
-  function handlePdfExport() {
+  async function handlePdfExport() {
     try {
-      openRecipePdfWindow(copy, recipe, editableParameters);
+      await downloadRecipePdf(copy, recipe, editableParameters);
       setExportStatus(copy.pdfOpened);
       setIsOpen(false);
     } catch {
@@ -633,10 +622,17 @@ function RecipeSaveControls({
           role="menu"
           aria-label={copy.saveRecipe}
         >
-          <button type="button" role="menuitem" onClick={handleImageExport}>
-            <FileImage size={18} />
-            {copy.saveAsImage}
-          </button>
+          {imageExportFormats.map((format) => (
+            <button
+              key={format}
+              type="button"
+              role="menuitem"
+              onClick={() => void handleImageExport(format)}
+            >
+              <FileImage size={18} />
+              {getImageExportLabel(copy, format)}
+            </button>
+          ))}
           <button type="button" role="menuitem" onClick={handlePdfExport}>
             <FileText size={18} />
             {copy.saveAsPdf}
@@ -646,6 +642,18 @@ function RecipeSaveControls({
       {exportStatus ? <p className="exportStatus">{exportStatus}</p> : null}
     </div>
   );
+}
+
+function getImageExportLabel(
+  copy: (typeof copies)["zh"],
+  format: ImageExportFormat
+) {
+  switch (format) {
+    case "png":
+      return copy.saveAsPng;
+    case "jpeg":
+      return copy.saveAsJpeg;
+  }
 }
 
 interface GuidedTimerProps extends RecipeDisplayProps {
@@ -885,104 +893,6 @@ function getTimerStepMessage(
   return formatStepDetail(currentStep, copy);
 }
 
-function FeedbackPanel({ copy }: FeedbackPanelProps) {
-  const [selectedRating, setSelectedRating] = useState<string | undefined>();
-  const [feedbackText, setFeedbackText] = useState("");
-  const ratingOptions = [
-    { id: "excellent", label: copy.ratingExcellent, Icon: Smile },
-    { id: "good", label: copy.ratingGood, Icon: Meh },
-    { id: "okay", label: copy.ratingOkay, Icon: Frown }
-  ];
-
-  function handleSubmitFeedback() {
-    setFeedbackText(copy.feedbackSaved);
-  }
-
-  return (
-    <section
-      className="feedbackPanel"
-      aria-labelledby="feedback-heading"
-      data-layout="stacked"
-    >
-      <div className="sectionHeader compact">
-        <h2 id="feedback-heading">{copy.feedbackTitle}</h2>
-      </div>
-      <div className="feedbackRatingBlock">
-        <span className="controlLabel">{copy.feedbackRatingLabel}</span>
-        <div className="ratingOptions">
-          {ratingOptions.map((rating) => {
-            const Icon = rating.Icon;
-
-            return (
-              <button
-                key={rating.id}
-                type="button"
-                aria-label={rating.label}
-                aria-pressed={selectedRating === rating.id}
-                className={selectedRating === rating.id ? "active" : ""}
-                onClick={() => setSelectedRating(rating.id)}
-              >
-                <Icon size={26} aria-hidden="true" />
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div className="feedbackForm" data-testid="feedback-form">
-        <label className="feedbackTextarea">
-          <span className="controlLabel">{copy.feedbackComment}</span>
-          <textarea
-            aria-label={copy.feedbackComment}
-            placeholder={copy.feedbackPlaceholder}
-            value={feedbackText}
-            onChange={(event) => setFeedbackText(event.currentTarget.value)}
-          />
-        </label>
-        <button
-          type="button"
-          className="submitFeedback"
-          onClick={handleSubmitFeedback}
-        >
-          <Send size={18} />
-          {copy.submitFeedback}
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function buildTimerSteps(
-  copy: (typeof copies)["zh"],
-  recipe: BrewingRecipe
-): TimerStep[] {
-  const rinseSteps = recipe.rinses.map((rinse) => ({
-    id: `rinse-${rinse.index}`,
-    label:
-      recipe.rinses.length > 1
-        ? interpolate(copy.rinseWithIndex, { index: rinse.index })
-        : copy.rinse,
-    detail: `${resolveRinseDetail(copy, rinse.detailKey)} ${copy.rinseDiscardHint}`,
-    seconds: rinse.seconds,
-    kind: "rinse" as const
-  }));
-
-  return [
-    ...rinseSteps,
-    ...recipe.infusions.map((infusion) => ({
-      id: `infusion-${infusion.index}`,
-      label: interpolate(
-        infusion.optional ? copy.optionalInfusion : copy.infusion,
-        { index: infusion.index }
-      ),
-      detail: resolveInfusionDetail(copy, infusion.detailKey, infusion.seconds),
-      durationLabel: resolveDurationLabel(copy, infusion.detailKey),
-      hint: resolvePourHint(copy, infusion.detailKey),
-      seconds: infusion.seconds,
-      kind: "infusion" as const
-    }))
-  ];
-}
-
 function parseWaterMl(value: string): number | undefined {
   if (value.trim() === "") {
     return undefined;
@@ -1058,279 +968,6 @@ function roundToTenth(value: number): number {
 function formatTeaAmount(value: number, language: Language): string {
   const normalizedValue = roundToTenth(value).toFixed(1);
   return language === "de" ? normalizedValue.replace(".", ",") : normalizedValue;
-}
-
-function formatSeconds(seconds: number, unit: string) {
-  return `${seconds} ${unit}`;
-}
-
-function formatStepDetail(step: TimerStep, copy: (typeof copies)["zh"]) {
-  if (step.seconds <= 0) {
-    return step.detail;
-  }
-
-  const duration = step.durationLabel ?? formatSeconds(step.seconds, copy.seconds);
-  return `${duration} · ${step.detail}`;
-}
-
-function resolveRinseDetail(
-  copy: (typeof copies)["zh"],
-  detailKey: InfusionDetailKey | undefined
-) {
-  switch (detailKey) {
-    case "white_rinse":
-      return copy.whiteRinseDetail;
-    case "immediate":
-      return copy.rinseImmediateDetail;
-    default:
-      return copy.rinseDetail;
-  }
-}
-
-function resolveInfusionDetail(
-  copy: (typeof copies)["zh"],
-  detailKey: InfusionDetailKey | undefined,
-  seconds: number
-) {
-  switch (detailKey) {
-    case "green_first":
-      return copy.greenFirstInfusionDetail;
-    case "green_refill":
-      return copy.greenRefillInfusionDetail;
-    case "green_optional":
-      return copy.greenOptionalInfusionDetail;
-    case "white_rinse":
-      return copy.whiteRinseDetail;
-    case "white_first":
-      return copy.whiteFirstInfusionDetail;
-    case "white_second":
-      return copy.whiteSecondInfusionDetail;
-    case "immediate":
-      return copy.immediateInfusionDetail;
-    case "standard":
-    default:
-      return seconds <= 0 ? copy.immediateInfusionDetail : copy.infusionDetail;
-  }
-}
-
-function resolveDurationLabel(
-  copy: (typeof copies)["zh"],
-  detailKey: InfusionDetailKey | undefined
-) {
-  switch (detailKey) {
-    case "green_optional":
-      return copy.greenOptionalDuration;
-    case "white_first":
-      return copy.whiteFirstDuration;
-    case "white_second":
-      return copy.whiteSecondDuration;
-    default:
-      return undefined;
-  }
-}
-
-function resolvePourHint(
-  copy: (typeof copies)["zh"],
-  detailKey: InfusionDetailKey | undefined
-) {
-  return detailKey?.startsWith("green_") ? copy.greenCupHint : copy.pourOut;
-}
-
-function formatEditableRatio(parameters: EditableParameters) {
-  if (
-    parameters.ratioRangeMin !== undefined &&
-    parameters.ratioRangeMax !== undefined
-  ) {
-    return `1:${parameters.ratioRangeMin}–1:${parameters.ratioRangeMax}`;
-  }
-
-  return `1:${parameters.ratioMlPerGram}`;
-}
-
-function formatRecipeTemperature(recipe: BrewingRecipe) {
-  if (recipe.temperatureCRange) {
-    return `${recipe.temperatureCRange.min}–${recipe.temperatureCRange.max}°C`;
-  }
-
-  return `${recipe.temperatureC}°C`;
-}
-
-function formatRecommendedInfusionCount(recipe: BrewingRecipe) {
-  const requiredCount = recipe.infusions.filter(
-    (infusion) => !infusion.optional
-  ).length;
-  const totalCount = recipe.infusions.length;
-
-  if (requiredCount !== totalCount) {
-    return `${requiredCount}–${totalCount}`;
-  }
-
-  return String(totalCount);
-}
-
-function downloadRecipeImage(
-  copy: (typeof copies)["zh"],
-  recipe: BrewingRecipe,
-  editableParameters: EditableParameters
-) {
-  const svg = buildRecipeCardSvg(copy, recipe, editableParameters);
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  downloadBlob(blob, "tea-master-recipe.svg");
-}
-
-function openRecipePdfWindow(
-  copy: (typeof copies)["zh"],
-  recipe: BrewingRecipe,
-  editableParameters: EditableParameters
-) {
-  const printWindow = window.open("", "_blank", "noopener,noreferrer");
-
-  if (!printWindow) {
-    throw new Error("Could not open print window");
-  }
-
-  const lines = buildRecipeCardLines(copy, recipe, editableParameters);
-  const body = lines
-    .map((line, index) =>
-      index === 0
-        ? `<h1>${escapeHtml(line)}</h1>`
-        : `<p>${escapeHtml(line)}</p>`
-    )
-    .join("");
-
-  printWindow.document.write(`<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>${escapeHtml(copy.appName)}</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 36px;
-        color: #18221d;
-        font-family: Inter, "Segoe UI", sans-serif;
-        background: #f7f4ec;
-      }
-      article {
-        max-width: 720px;
-        margin: 0 auto;
-        border: 1px solid #d9ded1;
-        border-radius: 16px;
-        padding: 32px;
-        background: #fffefa;
-      }
-      h1 {
-        margin: 0 0 18px;
-        color: #173126;
-      }
-      p {
-        margin: 0 0 10px;
-        line-height: 1.55;
-      }
-    </style>
-  </head>
-  <body>
-    <article>${body}</article>
-    <script>
-      window.addEventListener("load", () => {
-        window.print();
-      });
-    </script>
-  </body>
-</html>`);
-  printWindow.document.close();
-}
-
-function buildRecipeCardSvg(
-  copy: (typeof copies)["zh"],
-  recipe: BrewingRecipe,
-  editableParameters: EditableParameters
-) {
-  const lines = buildRecipeCardLines(copy, recipe, editableParameters).flatMap(
-    (line, index) => (index === 0 ? [line] : wrapLine(line, 42))
-  );
-  const width = 900;
-  const height = Math.max(620, 130 + lines.length * 30);
-  const textLines = lines
-    .map((line, index) => {
-      const y = index === 0 ? 76 : 126 + (index - 1) * 30;
-      const className = index === 0 ? "title" : "body";
-      return `<text class="${className}" x="56" y="${y}">${escapeXml(line)}</text>`;
-    })
-    .join("");
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <style>
-    .title { fill: #173126; font: 700 34px Inter, sans-serif; }
-    .body { fill: #36463d; font: 500 22px Inter, sans-serif; }
-    .rule { stroke: #c99b50; stroke-width: 3; stroke-linecap: round; }
-  </style>
-  <rect width="100%" height="100%" rx="24" fill="#fffefa" />
-  <rect x="20" y="20" width="${width - 40}" height="${height - 40}" rx="18" fill="none" stroke="#d9ded1" />
-  <path class="rule" d="M56 96h150" />
-  ${textLines}
-</svg>`;
-}
-
-function buildRecipeCardLines(
-  copy: (typeof copies)["zh"],
-  recipe: BrewingRecipe,
-  editableParameters: EditableParameters
-) {
-  const steps = buildTimerSteps(copy, recipe);
-
-  return [
-    copy.appName,
-    `${copy.chooseTea}: ${copy.teaNames[recipe.teaType]}`,
-    `${copy.vessel}: ${copy.vesselNames[recipe.vessel]}`,
-    `${copy.water}: ${editableParameters.waterMl} ${copy.milliliters}`,
-    `${copy.teaAmount}: ${editableParameters.teaGrams} ${copy.grams}`,
-    `${copy.ratio}: ${formatEditableRatio(editableParameters)}`,
-    `${copy.temperature}: ${formatRecipeTemperature(recipe)}`,
-    `${copy.infusionCount}: ${formatRecommendedInfusionCount(recipe)} ${copy.infusionCountUnit}`,
-    `${copy.process}:`,
-    `0. ${copy.prepare} - ${copy.prepareDetail}`,
-    ...steps.map(
-      (step, index) => `${index + 1}. ${step.label} - ${formatStepDetail(step, copy)}`
-    ),
-    copy.footerCredit
-  ];
-}
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = filename;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
-
-function wrapLine(line: string, maxLength: number) {
-  if (line.length <= maxLength) {
-    return [line];
-  }
-
-  const chunks: string[] = [];
-  for (let index = 0; index < line.length; index += maxLength) {
-    chunks.push(line.slice(index, index + maxLength));
-  }
-  return chunks;
-}
-
-function escapeXml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function escapeHtml(value: string) {
-  return escapeXml(value).replace(/'/g, "&#39;");
 }
 
 function formatClock(totalSeconds: number) {

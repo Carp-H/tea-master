@@ -195,8 +195,7 @@ h2 {
 .controlPanel,
 .recommendationBand,
 .flowPanel,
-.timerDialog,
-.feedbackPanel {
+.timerDialog {
   border: 1px solid #d9ded1;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.86);
@@ -271,10 +270,8 @@ h2 {
 
 .timerActions button,
 .stepTimerButton,
-.ratingOptions button,
 .recipeSaveToggle,
-.recipeSaveOptions button,
-.submitFeedback {
+.recipeSaveOptions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -369,8 +366,7 @@ h2 {
 }
 
 .flowPanel,
-.timerDialog,
-.feedbackPanel {
+.timerDialog {
   min-width: 0;
   padding: 20px;
 }
@@ -658,100 +654,11 @@ h2 {
   overflow-wrap: anywhere;
 }
 
-.feedbackPanel {
-  display: grid;
-  grid-template-columns: 1fr;
-  align-items: stretch;
-  gap: 18px;
-}
-
-.feedbackPanel .sectionHeader {
-  grid-column: 1 / -1;
-  margin-bottom: 0;
-}
-
-.feedbackRatingBlock {
-  min-width: 0;
-  max-width: 360px;
-}
-
-.ratingOptions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.ratingOptions button {
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  min-height: 58px;
-  padding: 10px 8px;
-  color: #2f4b3f;
-}
-
-.ratingOptions button svg {
-  color: #2b6f58;
-}
-
 .recipeSaveToggle,
-.recipeSaveOptions button,
-.submitFeedback {
+.recipeSaveOptions button {
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: normal;
-}
-
-.ratingOptions button.active,
-.ratingOptions button[aria-pressed="true"] {
-  border-color: #2b6f58;
-  background: #eef6ef;
-  color: #173126;
-}
-
-.submitFeedback {
-  min-height: 42px;
-  padding: 0 14px;
-}
-
-.feedbackForm {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-  max-width: 680px;
-}
-
-.feedbackTextarea {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-.feedbackTextarea textarea {
-  width: 100%;
-  min-width: 0;
-  min-height: 96px;
-  border: 1px solid #cbd4c8;
-  border-radius: 8px;
-  padding: 10px 12px;
-  resize: vertical;
-  background: #ffffff;
-  color: #18221d;
-  overflow-wrap: anywhere;
-}
-
-.feedbackTextarea textarea:focus {
-  border-color: #2b6f58;
-  outline: 2px solid rgba(43, 111, 88, 0.22);
-  outline-offset: 1px;
-}
-
-.submitFeedback {
-  justify-self: start;
-  border-color: #2b6f58;
-  background: #2b6f58;
-  color: #ffffff;
 }
 
 @media (max-width: 860px) {
@@ -761,8 +668,7 @@ h2 {
 
   .topBar,
   .flowArea,
-  .controlGrid,
-  .feedbackPanel {
+  .controlGrid {
     grid-template-columns: 1fr;
   }
 
@@ -803,7 +709,6 @@ h2 {
     justify-self: start;
   }
 
-  .ratingOptions,
   .recipeSaveOptions {
     grid-template-columns: 1fr;
   }

@@ -1,9 +1,36 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
+const exportMocks = vi.hoisted(() => ({
+  downloadRecipeImage: vi.fn(() => Promise.resolve()),
+  downloadRecipePdf: vi.fn(() => Promise.resolve())
+}));
+
+vi.mock("./lib/recipeExport", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./lib/recipeExport")>();
+
+  return {
+    ...actual,
+    downloadRecipeImage: exportMocks.downloadRecipeImage,
+    downloadRecipePdf: exportMocks.downloadRecipePdf
+  };
+});
+
 describe("Tea Master app", () => {
+  beforeEach(() => {
+    exportMocks.downloadRecipeImage.mockClear();
+    exportMocks.downloadRecipePdf.mockClear();
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -433,7 +460,7 @@ describe("Tea Master app", () => {
     render(<App />);
 
     await user.selectOptions(screen.getByLabelText("Language"), "zh");
-    expect(screen.getByText("LH与Codex通力合作，诚意呈现。")).toBeInTheDocument();
+    expect(screen.getByText("LH x Codex, 诚意呈现。")).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("语言"), "de");
     expect(
@@ -446,39 +473,15 @@ describe("Tea Master app", () => {
     expect(screen.queryByText("Tee und Zen - ein Geschmack.")).not.toBeInTheDocument();
   });
 
-  it("collects icon-only feedback at the bottom of the page", async () => {
+  it("does not render the feedback module", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.selectOptions(screen.getByLabelText("Language"), "zh");
 
-    const feedback = screen.getByRole("region", { name: "反馈与分享" });
-    expect(feedback).toHaveAttribute("data-layout", "stacked");
-    const mainSections = document.querySelectorAll("main > section");
-    expect(mainSections[mainSections.length - 1]).toBe(feedback);
-    expect(within(feedback).getByRole("button", { name: "很满意" })).toBeInTheDocument();
-    expect(within(feedback).getByRole("button", { name: "很满意" })).not.toHaveTextContent(
-      "很满意"
-    );
-    expect(within(feedback).queryByRole("button", { name: "导出图片" })).not.toBeInTheDocument();
-    expect(within(feedback).queryByRole("button", { name: "导出 PDF" })).not.toBeInTheDocument();
-
-    await user.click(within(feedback).getByRole("button", { name: "很满意" }));
-    expect(within(feedback).getByRole("button", { name: "很满意" })).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
-
-    const feedbackForm = within(feedback).getByTestId("feedback-form");
-    await user.type(
-      within(feedbackForm).getByLabelText("留言反馈"),
-      "希望之后增加浓淡偏好。"
-    );
-    await user.click(within(feedbackForm).getByRole("button", { name: "提交反馈" }));
-
-    expect(within(feedbackForm).getByLabelText("留言反馈")).toHaveValue(
-      "反馈已记录，谢谢。"
-    );
+    expect(screen.queryByRole("region", { name: "反馈与分享" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "很满意" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "提交反馈" })).not.toBeInTheDocument();
   });
 
   it("opens recipe export options from the brewing flow", async () => {
@@ -489,23 +492,85 @@ describe("Tea Master app", () => {
     const flow = screen.getByRole("region", { name: "泡茶流程" });
 
     expect(
-      within(flow).queryByRole("menuitem", { name: "以图片形式保存" })
+      within(flow).queryByRole("menuitem", { name: "保存为 PNG 图片" })
     ).not.toBeInTheDocument();
 
     await user.click(within(flow).getByRole("button", { name: "保存我的泡茶配方" }));
 
     const exportMenu = within(flow).getByRole("menu", { name: "保存我的泡茶配方" });
-    expect(
-      within(exportMenu).getByRole("menuitem", { name: "以图片形式保存" })
-    ).toBeInTheDocument();
-    expect(
-      within(exportMenu).getByRole("menuitem", { name: "以 PDF 格式保存" })
-    ).toBeInTheDocument();
+    for (const label of [
+      "保存为 PNG 图片",
+      "保存为 JPEG 图片",
+      "以 PDF 格式保存"
+    ]) {
+      expect(within(exportMenu).getByRole("menuitem", { name: label })).toBeInTheDocument();
+    }
+    expect(within(exportMenu).queryByRole("menuitem", { name: "保存为 WebP 图片" })).not.toBeInTheDocument();
+    expect(within(exportMenu).queryByRole("menuitem", { name: "保存为 SVG 图片" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("heading", { name: "Tea Master" }));
     expect(
       within(flow).queryByRole("menu", { name: "保存我的泡茶配方" })
     ).not.toBeInTheDocument();
+  });
+
+  it("exports the recipe with the selected image format", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.selectOptions(screen.getByLabelText("Language"), "zh");
+    const flow = screen.getByRole("region", { name: "泡茶流程" });
+    const options = [
+      ["保存为 PNG 图片", "png"],
+      ["保存为 JPEG 图片", "jpeg"]
+    ] as const;
+
+    for (const [label, format] of options) {
+      await user.click(within(flow).getByRole("button", { name: "保存我的泡茶配方" }));
+      await user.click(
+        within(flow).getByRole("menuitem", {
+          name: label
+        })
+      );
+
+      await waitFor(() =>
+        expect(exportMocks.downloadRecipeImage).toHaveBeenLastCalledWith(
+          expect.objectContaining({ appName: "Tea Master" }),
+          expect.objectContaining({ teaType: "green" }),
+          expect.objectContaining({ waterMl: "250" }),
+          format
+        )
+      );
+      expect(
+        within(flow).queryByRole("menu", { name: "保存我的泡茶配方" })
+      ).not.toBeInTheDocument();
+    }
+  });
+
+  it("exports the recipe as a direct PDF download without opening a print window", async () => {
+    const user = userEvent.setup();
+    const openSpy = vi.spyOn(window, "open").mockReturnValue(null);
+    render(<App />);
+
+    await user.selectOptions(screen.getByLabelText("Language"), "zh");
+    const flow = screen.getByRole("region", { name: "泡茶流程" });
+
+    await user.click(within(flow).getByRole("button", { name: "保存我的泡茶配方" }));
+    await user.click(
+      within(flow).getByRole("menuitem", {
+        name: "以 PDF 格式保存"
+      })
+    );
+
+    await waitFor(() =>
+      expect(exportMocks.downloadRecipePdf).toHaveBeenCalledWith(
+        expect.objectContaining({ appName: "Tea Master" }),
+        expect.objectContaining({ teaType: "green" }),
+        expect.objectContaining({ waterMl: "250" })
+      )
+    );
+    expect(openSpy).not.toHaveBeenCalled();
+    openSpy.mockRestore();
   });
 
   it("runs the guided timer through start, pause, and reset", async () => {
