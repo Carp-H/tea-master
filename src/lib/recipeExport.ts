@@ -34,6 +34,11 @@ export const RECIPE_PDF_FILENAME = `${RECIPE_EXPORT_BASE_FILENAME}.pdf`;
 
 const recipeCardWidth = 900;
 const recipeCardHorizontalPadding = 56;
+const recipeCardDividerWidth = recipeCardWidth - recipeCardHorizontalPadding * 2;
+const recipeCardTextWrapLength = 54;
+const recipeCardFooterGap = 90;
+const recipeCardFooterBottomPadding = 56;
+const recipeImageRasterScale = 3;
 
 export function getImageExportMetadata(
   format: ImageExportFormat
@@ -71,7 +76,8 @@ export async function downloadRecipeImage(
     width,
     height,
     mimeType: metadata.mimeType,
-    background: format === "jpeg" ? "#fffefa" : undefined
+    background: format === "jpeg" ? "#fffefa" : undefined,
+    scale: recipeImageRasterScale
   });
   downloadBlob(imageBlob, metadata.filename);
 }
@@ -188,17 +194,22 @@ function buildRecipeCardDocument(
   recipe: BrewingRecipe,
   editableParameters: EditableParameters
 ) {
-  const lines = buildRecipeCardLines(copy, recipe, editableParameters).flatMap(
-    (line) => wrapLine(line, 46)
+  const bodyLines = buildRecipeCardLines(copy, recipe, editableParameters).flatMap(
+    (line) => wrapLine(line, recipeCardTextWrapLength)
   );
   const contentStartY = 168;
   const lineHeight = 30;
-  const height = Math.max(680, contentStartY + lines.length * lineHeight + 72);
-  const textLines = lines
+  const lastBodyY =
+    contentStartY + Math.max(bodyLines.length - 1, 0) * lineHeight;
+  const height = Math.max(
+    720,
+    lastBodyY + recipeCardFooterGap + recipeCardFooterBottomPadding
+  );
+  const footerY = height - recipeCardFooterBottomPadding;
+  const textLines = bodyLines
     .map((line, index) => {
       const y = contentStartY + index * lineHeight;
-      const className = index === lines.length - 1 ? "footer" : "body";
-      return `<text class="${className}" x="${recipeCardHorizontalPadding}" y="${y}">${escapeXml(line)}</text>`;
+      return `<text class="body" x="${recipeCardHorizontalPadding}" y="${y}">${escapeXml(line)}</text>`;
     })
     .join("");
 
@@ -230,8 +241,9 @@ function buildRecipeCardDocument(
   </g>
   <text class="title" x="144" y="72">${escapeXml(copy.appName)}</text>
   <text class="slogan" x="144" y="106">${escapeXml(copy.slogan)}</text>
-  <path class="rule" d="M${recipeCardHorizontalPadding} 132h180" />
+  <path class="rule" d="M${recipeCardHorizontalPadding} 132h${recipeCardDividerWidth}" />
   ${textLines}
+  <text class="footer" x="${recipeCardHorizontalPadding}" y="${footerY}">${escapeXml(copy.footerCredit)}</text>
 </svg>`
   };
 }
@@ -255,8 +267,7 @@ function buildRecipeCardLines(
     `0. ${copy.prepare} - ${copy.prepareDetail}`,
     ...steps.map(
       (step, index) => `${index + 1}. ${step.label} - ${formatStepDetail(step, copy)}`
-    ),
-    copy.footerCredit
+    )
   ];
 }
 
@@ -325,14 +336,49 @@ function resolvePourHint(copy: Copy, detailKey: InfusionDetailKey | undefined) {
 }
 
 function wrapLine(line: string, maxLength: number) {
-  if (line.length <= maxLength) {
-    return [line];
+  const normalizedLine = line.trim();
+
+  if (normalizedLine.length <= maxLength) {
+    return [normalizedLine];
+  }
+
+  if (!/\s/.test(normalizedLine)) {
+    return chunkUnspacedLine(normalizedLine, maxLength);
   }
 
   const chunks: string[] = [];
+  let currentLine = "";
+
+  for (const word of normalizedLine.split(/\s+/)) {
+    if (!currentLine) {
+      currentLine = word;
+      continue;
+    }
+
+    const candidate = `${currentLine} ${word}`;
+    if (candidate.length <= maxLength) {
+      currentLine = candidate;
+      continue;
+    }
+
+    chunks.push(currentLine);
+    currentLine = word;
+  }
+
+  if (currentLine) {
+    chunks.push(currentLine);
+  }
+
+  return chunks;
+}
+
+function chunkUnspacedLine(line: string, maxLength: number) {
+  const chunks: string[] = [];
+
   for (let index = 0; index < line.length; index += maxLength) {
     chunks.push(line.slice(index, index + maxLength));
   }
+
   return chunks;
 }
 

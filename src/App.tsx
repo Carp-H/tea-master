@@ -49,6 +49,12 @@ interface TimerSnapshot {
   status: TimerStatus;
 }
 
+interface TimerCommand {
+  stepIndex: number;
+  version: number;
+  action: "toggle";
+}
+
 const languages: Language[] = ["zh", "en", "de"];
 
 function BrandLogo() {
@@ -422,9 +428,10 @@ function BrewingFlow({
   editableParameters
 }: BrewingFlowProps) {
   const steps = useMemo(() => buildTimerSteps(copy, recipe), [copy, recipe]);
-  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [activeStepIndex, setActiveStepIndex] = useState(-1);
   const [timerStepSelection, setTimerStepSelection] =
     useState<TimerStepSelection>({ index: 0, version: 0 });
+  const [timerCommand, setTimerCommand] = useState<TimerCommand>();
   const [timerSnapshot, setTimerSnapshot] = useState<TimerSnapshot>(() => ({
     stepIndex: 0,
     remainingSeconds: steps[0]?.seconds ?? 0,
@@ -433,7 +440,7 @@ function BrewingFlow({
   const [isTimerOpen, setIsTimerOpen] = useState(false);
 
   useEffect(() => {
-    setActiveStepIndex(0);
+    setActiveStepIndex(-1);
     setTimerSnapshot({
       stepIndex: 0,
       remainingSeconds: steps[0]?.seconds ?? 0,
@@ -470,13 +477,44 @@ function BrewingFlow({
     setIsTimerOpen(true);
   }
 
+  function toggleInlineTimer(stepIndex: number) {
+    setActiveStepIndex(stepIndex);
+
+    if (
+      timerSnapshot.stepIndex !== stepIndex ||
+      (timerSnapshot.status !== "running" && timerSnapshot.status !== "paused")
+    ) {
+      return;
+    }
+
+    setTimerCommand((command) => ({
+      action: "toggle",
+      stepIndex,
+      version: (command?.version ?? 0) + 1
+    }));
+  }
+
+  const isPrepareActive = activeStepIndex === -1;
+
   return (
     <section className="flowPanel" aria-labelledby="flow-heading">
       <div className="sectionHeader compact">
         <h2 id="flow-heading">{copy.process}</h2>
       </div>
       <ol className="stepList">
-        <li>
+        <li
+          className={isPrepareActive ? "selectableStep activeStep" : "selectableStep"}
+          aria-current={isPrepareActive ? "step" : undefined}
+          aria-label={`${copy.prepare} ${copy.prepareDetail}`}
+          tabIndex={0}
+          onClick={() => selectStep(-1)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              selectStep(-1);
+            }
+          }}
+        >
           <span className="stepNumber">0</span>
           <div>
             <strong>{copy.prepare}</strong>
@@ -487,13 +525,14 @@ function BrewingFlow({
           const isActive = index === activeStepIndex;
           const stepDetail = formatStepDetail(step, copy);
           const shouldShowInlineTimer =
-            !isTimerOpen &&
             timerSnapshot.stepIndex === index &&
             (timerSnapshot.status === "running" ||
               timerSnapshot.status === "paused");
           const stepButtonLabel = shouldShowInlineTimer
             ? formatClock(timerSnapshot.remainingSeconds)
             : copy.start;
+          const inlineToggleLabel =
+            timerSnapshot.status === "running" ? copy.pause : copy.resume;
 
           return (
             <li
@@ -515,21 +554,47 @@ function BrewingFlow({
                 <strong>{step.label}</strong>
                 <p>{stepDetail}</p>
               </div>
-              <button
-                type="button"
-                className={
-                  shouldShowInlineTimer
-                    ? "stepTimerButton inlineTimerActive"
-                    : "stepTimerButton"
-                }
-                onClick={(event) => {
-                  event.stopPropagation();
-                  openTimerForStep(index);
-                }}
-              >
-                <Play size={15} aria-hidden="true" />
-                {stepButtonLabel}
-              </button>
+              {shouldShowInlineTimer ? (
+                <div className="inlineTimerControls">
+                  <button
+                    type="button"
+                    className="inlineTimerToggle"
+                    aria-label={inlineToggleLabel}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      toggleInlineTimer(index);
+                    }}
+                  >
+                    {timerSnapshot.status === "running" ? (
+                      <Pause size={15} aria-hidden="true" />
+                    ) : (
+                      <Play size={15} aria-hidden="true" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="stepTimerButton inlineTimerActive"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openTimerForStep(index);
+                    }}
+                  >
+                    {stepButtonLabel}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="stepTimerButton"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openTimerForStep(index);
+                  }}
+                >
+                  <Play size={15} aria-hidden="true" />
+                  {stepButtonLabel}
+                </button>
+              )}
             </li>
           );
         })}
@@ -543,6 +608,7 @@ function BrewingFlow({
         copy={copy}
         recipe={recipe}
         selectedStep={timerStepSelection}
+        timerCommand={timerCommand}
         isOpen={isTimerOpen}
         onClose={() => setIsTimerOpen(false)}
         onActiveStepChange={setActiveStepIndex}
@@ -658,6 +724,7 @@ function getImageExportLabel(
 
 interface GuidedTimerProps extends RecipeDisplayProps {
   selectedStep: TimerStepSelection;
+  timerCommand: TimerCommand | undefined;
   isOpen: boolean;
   onClose: () => void;
   onActiveStepChange: (stepIndex: number) => void;
@@ -668,6 +735,7 @@ function GuidedTimer({
   copy,
   recipe,
   selectedStep,
+  timerCommand,
   isOpen,
   onClose,
   onActiveStepChange,
@@ -683,10 +751,6 @@ function GuidedTimer({
     setRemainingSeconds(steps[0]?.seconds ?? 0);
     setStatus("idle");
   }, [steps]);
-
-  useEffect(() => {
-    onActiveStepChange(currentStepIndex);
-  }, [currentStepIndex, onActiveStepChange]);
 
   useEffect(() => {
     onTimerSnapshotChange({
@@ -710,13 +774,41 @@ function GuidedTimer({
         ? getStartedTimerStatus(selectedStep.index, nextStep.seconds, steps)
         : "idle"
     );
-  }, [selectedStep.index, selectedStep.startOnOpen, selectedStep.version, steps]);
+    if (selectedStep.startOnOpen) {
+      onActiveStepChange(selectedStep.index);
+    }
+  }, [
+    onActiveStepChange,
+    selectedStep.index,
+    selectedStep.startOnOpen,
+    selectedStep.version,
+    steps
+  ]);
+
+  useEffect(() => {
+    if (!timerCommand || timerCommand.stepIndex !== currentStepIndex) {
+      return;
+    }
+
+    setStatus((currentStatus) => {
+      if (currentStatus === "running") {
+        return "paused";
+      }
+
+      if (currentStatus === "paused") {
+        return "running";
+      }
+
+      return currentStatus;
+    });
+  }, [currentStepIndex, timerCommand]);
 
   function beginStep(stepIndex: number) {
     const nextSeconds = steps[stepIndex]?.seconds ?? 0;
 
     setCurrentStepIndex(stepIndex);
     setRemainingSeconds(nextSeconds);
+    onActiveStepChange(stepIndex);
     setStatus(
       nextSeconds <= 0
         ? stepIndex >= steps.length - 1
@@ -838,9 +930,6 @@ function GuidedTimer({
             {copy.reset}
           </button>
         </div>
-        {isStepDone || shouldShowNextForZeroStep ? null : (
-          <p className="pourHint">{currentStep?.hint ?? copy.pourOut}</p>
-        )}
       </section>
     </div>,
     document.body

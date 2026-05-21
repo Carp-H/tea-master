@@ -64,6 +64,37 @@ describe("recipe export", () => {
     expect(svg).toContain("LH x Codex, 诚意呈现。");
   });
 
+  it("uses a long title divider and keeps the footer as a separated one-line footnote", () => {
+    const svg = buildRecipeCardSvg(copies.en, recipe, editableParameters);
+    const textElements = extractTextElements(svg);
+    const bodyYValues = textElements
+      .filter((element) => element.className === "body")
+      .map((element) => element.y);
+    const footerElements = textElements.filter(
+      (element) => element.className === "footer"
+    );
+    const height = Number(svg.match(/height="(\d+)"/)?.[1]);
+
+    expect(svg).toContain('d="M56 132h788"');
+    expect(footerElements).toHaveLength(1);
+    expect(footerElements[0].text).toBe(copies.en.footerCredit);
+    expect(footerElements[0].y - Math.max(...bodyYValues)).toBeGreaterThanOrEqual(
+      72
+    );
+    expect(height - footerElements[0].y).toBeGreaterThanOrEqual(48);
+  });
+
+  it("wraps English recipe text at readable boundaries instead of splitting words", () => {
+    const svg = buildRecipeCardSvg(copies.en, recipe, editableParameters);
+    const textLines = extractTextElements(svg).map((element) => element.text);
+    const textWithLineBreaks = textLines.join("\n");
+
+    expect(textLines.some((line) => line.includes("boiling"))).toBe(true);
+    expect(textWithLineBreaks).not.toMatch(/\bwa\nter\b|\bwat\ner\b/);
+    expect(textLines.every((line) => !line.startsWith(" "))).toBe(true);
+    expect(textLines.every((line) => !line.endsWith(" "))).toBe(true);
+  });
+
   it("defines the supported image export formats and file metadata", () => {
     expect(imageExportFormats).toEqual(["png", "jpeg"]);
     expect(getImageExportMetadata("png")).toEqual({
@@ -85,7 +116,7 @@ describe("recipe export", () => {
   ] as const)(
     "renders SVG to canvas and downloads %s image blobs",
     async (format, mimeType, filename, quality) => {
-      const { clickSpy, fillRect, toBlobSpy } = mockBrowserExportApis();
+      const { clickSpy, fillRect, scale, toBlobSpy } = mockBrowserExportApis();
 
       await downloadRecipeImage(
         copies.zh,
@@ -99,6 +130,7 @@ describe("recipe export", () => {
         mimeType,
         quality
       );
+      expect(scale).toHaveBeenCalledWith(3, 3);
       expect(clickSpy.mock.contexts.at(-1)).toHaveProperty("download", filename);
 
       if (format === "jpeg") {
@@ -176,4 +208,16 @@ function mockBrowserExportApis() {
   vi.stubGlobal("Image", TestImage);
 
   return { clickSpy, drawImage, fillRect, scale, toBlobSpy };
+}
+
+function extractTextElements(svg: string) {
+  return Array.from(
+    svg.matchAll(
+      /<text class="(?<className>[^"]+)" x="[^"]+" y="(?<y>\d+)"[^>]*>(?<text>.*?)<\/text>/g
+    )
+  ).map((match) => ({
+    className: match.groups?.className ?? "",
+    text: match.groups?.text ?? "",
+    y: Number(match.groups?.y ?? 0)
+  }));
 }

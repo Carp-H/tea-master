@@ -61,6 +61,30 @@ describe("Tea Master app", () => {
     expect(screen.queryByText("选择茶类")).not.toBeInTheDocument();
   });
 
+  it("highlights the prepare step before any brewing timer starts", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const flow = screen.getByRole("region", { name: "Brewing flow" });
+    expect(within(flow).getByText("Prepare").closest("li")).toHaveAttribute(
+      "aria-current",
+      "step"
+    );
+    expect(within(flow).getByText("Infusion 1").closest("li")).not.toHaveAttribute(
+      "aria-current"
+    );
+
+    await user.selectOptions(screen.getByLabelText("Language"), "zh");
+    const localizedFlow = screen.getByRole("region", { name: "泡茶流程" });
+    expect(within(localizedFlow).getByText("准备").closest("li")).toHaveAttribute(
+      "aria-current",
+      "step"
+    );
+    expect(within(localizedFlow).getByText("第 1 泡").closest("li")).not.toHaveAttribute(
+      "aria-current"
+    );
+  });
+
   it("shows the recommended vessels after selecting a tea type", async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -323,7 +347,7 @@ describe("Tea Master app", () => {
     fireEvent.click(within(firstInfusionStep!).getByRole("button", { name: "开始" }));
     const timer = screen.getByRole("dialog", { name: "逐泡计时" });
     expect(within(timer).getByTestId("timer-display")).toHaveTextContent("02:00");
-    expect(within(timer).getByText("杯中浸泡")).toBeInTheDocument();
+    expect(within(timer).queryByText("杯中浸泡")).not.toBeInTheDocument();
   });
 
   it("shows the revised black tea porcelain-pot recommendation and optional third infusion", async () => {
@@ -601,6 +625,27 @@ describe("Tea Master app", () => {
     expect(within(timer).getByTestId("timer-display")).toHaveTextContent("02:00");
   });
 
+  it("keeps the background step button synced while the timer dialog is open", async () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    const flow = screen.getByRole("region", { name: "Brewing flow" });
+    const firstStep = within(flow).getByText("Infusion 1").closest("li");
+    expect(firstStep).not.toBeNull();
+
+    fireEvent.click(within(firstStep!).getByRole("button", { name: "Start" }));
+    const timer = screen.getByRole("dialog", { name: "Infusion timer" });
+
+    expect(within(firstStep!).getByRole("button", { name: "Pause" })).toBeInTheDocument();
+    expect(within(firstStep!).getByRole("button", { name: "02:00" })).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(within(timer).getByTestId("timer-display")).toHaveTextContent("01:59");
+    expect(within(firstStep!).getByRole("button", { name: "01:59" })).toBeInTheDocument();
+  });
+
   it("keeps a closed running timer visible in its brewing step button", async () => {
     vi.useFakeTimers();
     render(<App />);
@@ -620,12 +665,30 @@ describe("Tea Master app", () => {
     fireEvent.click(within(timer).getByRole("button", { name: "Close timer" }));
 
     expect(screen.queryByRole("dialog", { name: "Infusion timer" })).not.toBeInTheDocument();
-    expect(within(firstStep!).getByRole("button")).toHaveTextContent("01:59");
+    expect(within(firstStep!).getByRole("button", { name: "Pause" })).toBeInTheDocument();
+    expect(within(firstStep!).getByRole("button", { name: "01:59" })).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(1000);
     });
-    expect(within(firstStep!).getByRole("button")).toHaveTextContent("01:58");
+    expect(within(firstStep!).getByRole("button", { name: "01:58" })).toBeInTheDocument();
+
+    fireEvent.click(within(firstStep!).getByRole("button", { name: "Pause" }));
+    expect(within(firstStep!).getByRole("button", { name: "Resume" })).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(within(firstStep!).getByRole("button", { name: "01:58" })).toBeInTheDocument();
+
+    fireEvent.click(within(firstStep!).getByRole("button", { name: "Resume" }));
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(within(firstStep!).getByRole("button", { name: "01:57" })).toBeInTheDocument();
+
+    fireEvent.click(within(firstStep!).getByRole("button", { name: "01:57" }));
+    expect(screen.getByRole("dialog", { name: "Infusion timer" })).toBeInTheDocument();
   });
 
   it("waits for the user before starting the next infusion and highlights the active flow step", async () => {
@@ -638,9 +701,12 @@ describe("Tea Master app", () => {
     fireEvent.click(screen.getByRole("tab", { name: "黑茶" }));
 
     const flow = screen.getByRole("region", { name: "泡茶流程" });
-    expect(within(flow).getByText("润茶 1").closest("li")).toHaveAttribute(
+    expect(within(flow).getByText("准备").closest("li")).toHaveAttribute(
       "aria-current",
       "step"
+    );
+    expect(within(flow).getByText("润茶 1").closest("li")).not.toHaveAttribute(
+      "aria-current"
     );
 
     fireEvent.click(
@@ -694,6 +760,7 @@ describe("Tea Master app", () => {
     const timer = screen.getByRole("dialog", { name: "逐泡计时" });
 
     expect(within(timer).getByTestId("timer-display")).toHaveTextContent("00:05");
+    expect(within(timer).queryByText("出汤")).not.toBeInTheDocument();
     expect(within(flow).getByText("第 4 泡").closest("li")).toHaveAttribute(
       "aria-current",
       "step"

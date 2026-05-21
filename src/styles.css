@@ -270,6 +270,7 @@ h2 {
 
 .timerActions button,
 .stepTimerButton,
+.inlineTimerToggle,
 .recipeSaveToggle,
 .recipeSaveOptions button {
   display: inline-flex;
@@ -439,6 +440,26 @@ h2 {
   color: #235841;
 }
 
+.inlineTimerControls {
+  align-self: end;
+  display: inline-grid;
+  grid-template-columns: 42px minmax(74px, auto);
+  gap: 6px;
+}
+
+.inlineTimerToggle {
+  min-width: 42px;
+  min-height: 34px;
+  padding: 0;
+  border-color: #2b6f58;
+  background: #2b6f58;
+  color: #ffffff;
+}
+
+.inlineTimerControls .stepTimerButton {
+  align-self: stretch;
+}
+
 .stepTimerButton.inlineTimerActive {
   border-color: #2b6f58;
   background: #eef6ef;
@@ -447,7 +468,9 @@ h2 {
 }
 
 .stepTimerButton:hover,
-.stepTimerButton:focus-visible {
+.stepTimerButton:focus-visible,
+.inlineTimerToggle:hover,
+.inlineTimerToggle:focus-visible {
   border-color: #2b6f58;
   background: #2b6f58;
   color: #ffffff;
@@ -599,14 +622,6 @@ h2 {
   background: #ffffff;
 }
 
-.pourHint {
-  min-width: 0;
-  margin: 12px 0 0;
-  color: #8b5d2b;
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
 .recipeSaveControls {
   position: relative;
   display: inline-grid;
@@ -704,7 +719,8 @@ h2 {
     grid-template-columns: 34px minmax(0, 1fr);
   }
 
-  .stepTimerButton {
+  .stepTimerButton,
+  .inlineTimerControls {
     grid-column: 2;
     justify-self: start;
   }
