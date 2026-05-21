@@ -331,13 +331,16 @@ describe("Tea Master app", () => {
       "120 秒"
     );
     expect(within(flow).getByText("第 2 泡").closest("li")).toHaveTextContent(
-      "剩三分之一"
+      "前一泡茶水还剩大约三分之一"
     );
     expect(within(flow).getByText("第 2 泡").closest("li")).toHaveTextContent(
       "100°C"
     );
     expect(within(flow).getByText("可选第 3 泡").closest("li")).toHaveTextContent(
       "3–5 分钟"
+    );
+    expect(within(flow).getByText("可选第 3 泡").closest("li")).toHaveTextContent(
+      "前一泡茶水还剩大约三分之一"
     );
 
     expect(screen.queryByRole("region", { name: "逐泡计时" })).not.toBeInTheDocument();
@@ -644,6 +647,25 @@ describe("Tea Master app", () => {
     });
     expect(within(timer).getByTestId("timer-display")).toHaveTextContent("01:59");
     expect(within(firstStep!).getByRole("button", { name: "01:59" })).toBeInTheDocument();
+  });
+
+  it("uses the unified English drinking prompt when an infusion timer ends", async () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    const flow = screen.getByRole("region", { name: "Brewing flow" });
+    const firstStep = within(flow).getByText("Infusion 1").closest("li");
+    expect(firstStep).not.toBeNull();
+
+    fireEvent.click(within(firstStep!).getByRole("button", { name: "Start" }));
+    const timer = screen.getByRole("dialog", { name: "Infusion timer" });
+
+    act(() => {
+      vi.advanceTimersByTime(120000);
+    });
+
+    expect(within(timer).getByText("take a sip!")).toBeInTheDocument();
+    expect(within(timer).queryByText("Your tea is ready. Sip slowly.")).not.toBeInTheDocument();
   });
 
   it("keeps a closed running timer visible in its brewing step button", async () => {
