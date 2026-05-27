@@ -613,6 +613,7 @@ function BrewingFlow({
         onClose={() => setIsTimerOpen(false)}
         onActiveStepChange={setActiveStepIndex}
         onTimerSnapshotChange={setTimerSnapshot}
+        onTimerFinishedWhileClosed={() => setIsTimerOpen(true)}
       />
     </section>
   );
@@ -729,6 +730,7 @@ interface GuidedTimerProps extends RecipeDisplayProps {
   onClose: () => void;
   onActiveStepChange: (stepIndex: number) => void;
   onTimerSnapshotChange: (snapshot: TimerSnapshot) => void;
+  onTimerFinishedWhileClosed: () => void;
 }
 
 function GuidedTimer({
@@ -739,12 +741,14 @@ function GuidedTimer({
   isOpen,
   onClose,
   onActiveStepChange,
-  onTimerSnapshotChange
+  onTimerSnapshotChange,
+  onTimerFinishedWhileClosed
 }: GuidedTimerProps) {
   const steps = useMemo(() => buildTimerSteps(copy, recipe), [copy, recipe]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [remainingSeconds, setRemainingSeconds] = useState(steps[0]?.seconds ?? 0);
   const [status, setStatus] = useState<TimerStatus>("idle");
+  const previousStatusRef = useRef<TimerStatus>(status);
 
   useEffect(() => {
     setCurrentStepIndex(0);
@@ -759,6 +763,17 @@ function GuidedTimer({
       status
     });
   }, [currentStepIndex, onTimerSnapshotChange, remainingSeconds, status]);
+
+  useEffect(() => {
+    const previousStatus = previousStatusRef.current;
+    const didFinish = status === "steeped" || status === "completed";
+
+    if (!isOpen && previousStatus === "running" && didFinish) {
+      onTimerFinishedWhileClosed();
+    }
+
+    previousStatusRef.current = status;
+  }, [isOpen, onTimerFinishedWhileClosed, status]);
 
   useEffect(() => {
     const nextStep = steps[selectedStep.index];

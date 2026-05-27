@@ -713,6 +713,28 @@ describe("Tea Master app", () => {
     expect(screen.getByRole("dialog", { name: "Infusion timer" })).toBeInTheDocument();
   });
 
+  it("reopens a closed timer dialog when the countdown finishes", async () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    const flow = screen.getByRole("region", { name: "Brewing flow" });
+    const firstStep = within(flow).getByText("Infusion 1").closest("li");
+    expect(firstStep).not.toBeNull();
+
+    fireEvent.click(within(firstStep!).getByRole("button", { name: "Start" }));
+    const timer = screen.getByRole("dialog", { name: "Infusion timer" });
+    fireEvent.click(within(timer).getByRole("button", { name: "Close timer" }));
+    expect(screen.queryByRole("dialog", { name: "Infusion timer" })).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(120000);
+    });
+
+    const reopenedTimer = screen.getByRole("dialog", { name: "Infusion timer" });
+    expect(within(reopenedTimer).getByTestId("timer-display")).toHaveTextContent("00:00");
+    expect(within(reopenedTimer).getByText("take a sip!")).toBeInTheDocument();
+  });
+
   it("waits for the user before starting the next infusion and highlights the active flow step", async () => {
     vi.useFakeTimers();
     render(<App />);
