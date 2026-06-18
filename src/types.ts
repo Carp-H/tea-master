@@ -13,6 +13,8 @@ export type Vessel =
 
 export type Language = "zh" | "en" | "de";
 
+export type BrewStrength = "light" | "standard" | "strong";
+
 export type InfusionDetailKey =
   | "standard"
   | "immediate"
@@ -33,6 +35,15 @@ export interface RecipeRequest {
   vessel: Vessel;
   waterMl?: number;
   language?: Language;
+}
+
+export interface RecipeQueryState {
+  lang: Language;
+  tea: TeaType;
+  vessel: Vessel;
+  water: number;
+  ratio: number;
+  strength: BrewStrength;
 }
 
 export interface InfusionStep {
@@ -84,6 +95,7 @@ export interface BrewingGuide {
   vessel: Vessel;
   vesselCapacityMl: number;
   ratioMlPerGram: number;
+  strengthRatios?: Record<BrewStrength, number>;
   ratioMlPerGramRange?: NumericRange;
   temperatureC: number;
   temperatureCRange?: NumericRange;

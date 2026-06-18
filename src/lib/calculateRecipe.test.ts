@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getBrewingGuide } from "../data/brewingGuides";
 import { getRecommendedVessels, teaProfiles } from "../data/teaProfiles";
 import { calculateRecipe } from "./calculateRecipe";
 
@@ -32,6 +33,50 @@ describe("tea vessel recommendations", () => {
 });
 
 describe("recipe calculation", () => {
+  it("defines strength preset ratios for every supported tea and vessel", () => {
+    expect(
+      getBrewingGuide("green", "glass_cup")?.strengthRatios
+    ).toEqual({
+      light: 110,
+      standard: 100,
+      strong: 90
+    });
+    expect(getBrewingGuide("white", "gaiwan")?.strengthRatios).toEqual({
+      light: 40,
+      standard: 30,
+      strong: 20
+    });
+    expect(getBrewingGuide("black", "gaiwan")?.strengthRatios).toEqual({
+      light: 40,
+      standard: 30,
+      strong: 25
+    });
+    expect(
+      getBrewingGuide("black", "porcelain_pot")?.strengthRatios
+    ).toEqual({
+      light: 110,
+      standard: 100,
+      strong: 90
+    });
+    expect(getBrewingGuide("oolong", "gaiwan")?.strengthRatios).toEqual({
+      light: 20,
+      standard: 14,
+      strong: 11
+    });
+    expect(getBrewingGuide("dark", "gaiwan")?.strengthRatios).toEqual({
+      light: 25,
+      standard: 20,
+      strong: 15
+    });
+    expect(
+      getBrewingGuide("dark", "zisha_clay_pot")?.strengthRatios
+    ).toEqual({
+      light: 25,
+      standard: 20,
+      strong: 20
+    });
+  });
+
   it("uses the revised tea-water ratios by tea type and vessel", () => {
     const green = calculateRecipe({ teaType: "green", vessel: "glass_cup" });
     const blackGaiwan = calculateRecipe({ teaType: "black", vessel: "gaiwan" });
@@ -52,9 +97,9 @@ describe("recipe calculation", () => {
     expect(calculateRecipe({ teaType: "white", vessel: "gaiwan" }).ratioMlPerGramRange).toBeUndefined();
     expect(blackGaiwan.ratioMlPerGram).toBe(30);
     expect(blackPot.ratioMlPerGram).toBe(100);
-    expect(oolong.ratioMlPerGram).toBe(15);
+    expect(oolong.ratioMlPerGram).toBe(14);
     expect(oolong.ratioMlPerGramRange).toBeUndefined();
-    expect(oolong.teaGrams).toBe(7.3);
+    expect(oolong.teaGrams).toBe(7.9);
     expect(darkGaiwan.ratioMlPerGram).toBe(20);
     expect(darkGaiwan.ratioMlPerGramRange).toBeUndefined();
     expect(darkZishaClay.ratioMlPerGram).toBe(20);

@@ -17,6 +17,7 @@ export const brewingGuides: BrewingGuide[] = [
     vessel: "glass_cup",
     vesselCapacityMl: 250,
     ratioMlPerGram: 100,
+    strengthRatios: { light: 110, standard: 100, strong: 90 },
     temperatureC: 80,
     temperatureCRange: { min: 80, max: 100 },
     infusions: [
@@ -30,6 +31,7 @@ export const brewingGuides: BrewingGuide[] = [
     vessel: "gaiwan",
     vesselCapacityMl: 110,
     ratioMlPerGram: 30,
+    strengthRatios: { light: 40, standard: 30, strong: 20 },
     temperatureC: 100,
     rinseSeconds: 0,
     rinseDetailKey: "white_rinse",
@@ -48,6 +50,7 @@ export const brewingGuides: BrewingGuide[] = [
     vessel: "gaiwan",
     vesselCapacityMl: 110,
     ratioMlPerGram: 30,
+    strengthRatios: { light: 40, standard: 30, strong: 25 },
     temperatureC: 100,
     infusions: [
       { seconds: 20 },
@@ -63,6 +66,7 @@ export const brewingGuides: BrewingGuide[] = [
     vessel: "porcelain_pot",
     vesselCapacityMl: 230,
     ratioMlPerGram: 100,
+    strengthRatios: { light: 110, standard: 100, strong: 90 },
     temperatureC: 90,
     temperatureCRange: { min: 90, max: 100 },
     infusions: [
@@ -75,7 +79,8 @@ export const brewingGuides: BrewingGuide[] = [
     teaType: "oolong",
     vessel: "gaiwan",
     vesselCapacityMl: 110,
-    ratioMlPerGram: 15,
+    ratioMlPerGram: 14,
+    strengthRatios: { light: 20, standard: 14, strong: 11 },
     temperatureC: 95,
     temperatureCRange: { min: 95, max: 100 },
     infusionSeconds: [0, 0, 5, 10, 15, 20, 25]
@@ -85,6 +90,7 @@ export const brewingGuides: BrewingGuide[] = [
     vessel: "gaiwan",
     vesselCapacityMl: 110,
     ratioMlPerGram: 20,
+    strengthRatios: { light: 25, standard: 20, strong: 15 },
     temperatureC: 100,
     rinses: darkTeaRinses,
     infusions: darkTeaInfusions
@@ -94,6 +100,7 @@ export const brewingGuides: BrewingGuide[] = [
     vessel: "zisha_clay_pot",
     vesselCapacityMl: 130,
     ratioMlPerGram: 20,
+    strengthRatios: { light: 25, standard: 20, strong: 20 },
     temperatureC: 100,
     rinses: darkTeaRinses,
     infusions: darkTeaInfusions

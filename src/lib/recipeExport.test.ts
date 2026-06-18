@@ -13,6 +13,7 @@ import type { ImageExportFormat } from "./recipeExport";
 
 const pdfMocks = vi.hoisted(() => ({
   addImage: vi.fn(),
+  link: vi.fn(),
   save: vi.fn(),
   jsPDF: vi.fn()
 }));
@@ -24,10 +25,12 @@ vi.mock("jspdf", () => ({
 describe("recipe export", () => {
   beforeEach(() => {
     pdfMocks.addImage.mockClear();
+    pdfMocks.link.mockClear();
     pdfMocks.save.mockClear();
     pdfMocks.jsPDF.mockClear();
     pdfMocks.jsPDF.mockReturnValue({
       addImage: pdfMocks.addImage,
+      link: pdfMocks.link,
       save: pdfMocks.save
     });
   });
@@ -46,10 +49,11 @@ describe("recipe export", () => {
   const editableParameters = {
     waterMl: "250",
     teaGrams: "2.5",
-    ratioMlPerGram: "100"
+    ratioMlPerGram: "100",
+    strength: "standard" as const
   };
 
-  it("builds a branded recipe card SVG with logo, slogan, recipe, and credit", () => {
+  it("builds a branded recipe card SVG with logo, slogan, recipe, strength, web link, and credit", () => {
     const svg = buildRecipeCardSvg(copies.zh, recipe, editableParameters);
 
     expect(svg).toContain("Tea Master");
@@ -58,9 +62,12 @@ describe("recipe export", () => {
     expect(svg).toContain("M29 9.5c-4.2 4.1 4.1 6.4-.3 10.6");
     expect(svg).toContain("选择茶类: 绿茶");
     expect(svg).toContain("主泡器: 玻璃杯");
-    expect(svg).toContain("注水量: 250 毫升");
+    expect(svg).toContain("注水量（即主泡器容积）: 250 毫升");
+    expect(svg).toContain("口味浓淡: 标准");
     expect(svg).toContain("投茶量: 2.5 克");
     expect(svg).toContain("茶水比: 1:100");
+    expect(svg).toContain('href="https://carp-h.github.io/tea-master/"');
+    expect(svg).toContain(">https://carp-h.github.io/tea-master/<");
     expect(svg).toContain("LH x Codex, 诚意呈现。");
   });
 
@@ -73,11 +80,17 @@ describe("recipe export", () => {
     const footerElements = textElements.filter(
       (element) => element.className === "footer"
     );
+    const linkElements = textElements.filter(
+      (element) => element.className === "siteLink"
+    );
     const height = Number(svg.match(/height="(\d+)"/)?.[1]);
 
     expect(svg).toContain('d="M56 132h788"');
     expect(footerElements).toHaveLength(1);
+    expect(linkElements).toHaveLength(1);
+    expect(linkElements[0].text).toBe("https://carp-h.github.io/tea-master/");
     expect(footerElements[0].text).toBe(copies.en.footerCredit);
+    expect(linkElements[0].y).toBeLessThan(footerElements[0].y);
     expect(footerElements[0].y - Math.max(...bodyYValues)).toBeGreaterThanOrEqual(
       72
     );
@@ -93,6 +106,8 @@ describe("recipe export", () => {
     expect(textWithLineBreaks).not.toMatch(/\bwa\nter\b|\bwat\ner\b/);
     expect(textLines.every((line) => !line.startsWith(" "))).toBe(true);
     expect(textLines.every((line) => !line.endsWith(" "))).toBe(true);
+    expect(svg).not.toContain("textLength=");
+    expect(svg).not.toContain("lengthAdjust=");
   });
 
   it("defines the supported image export formats and file metadata", () => {
@@ -160,6 +175,13 @@ describe("recipe export", () => {
       0,
       900,
       expect.any(Number)
+    );
+    expect(pdfMocks.link).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number),
+      { url: "https://carp-h.github.io/tea-master/" }
     );
     expect(pdfMocks.save).toHaveBeenCalledWith("tea-master-recipe.pdf");
   });

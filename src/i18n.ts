@@ -1,4 +1,4 @@
-import type { Language, TeaType, Vessel } from "./types";
+import type { BrewStrength, Language, TeaType, Vessel } from "./types";
 
 export interface Copy {
   appName: string;
@@ -16,6 +16,11 @@ export interface Copy {
   temperature: string;
   infusionCount: string;
   infusionCountUnit: string;
+  strength: string;
+  strengthNames: Record<BrewStrength, string>;
+  autoCalculated: string;
+  editableField: string;
+  startBrewing: string;
   rangeMinLabel: string;
   rangeMaxLabel: string;
   exportImage: string;
@@ -66,6 +71,8 @@ export interface Copy {
   resume: string;
   reset: string;
   closeTimer: string;
+  timerAlerts: string;
+  timerAlertsOn: string;
   pourOut: string;
   allDone: string;
   grams: string;
@@ -92,12 +99,21 @@ export const copies: Record<Language, Copy> = {
     recommendedVessel: "推荐主泡器",
     recommendation: "推荐参数",
     vessel: "主泡器",
-    water: "注水量",
+    water: "注水量（即主泡器容积）",
     teaAmount: "投茶量",
     ratio: "茶水比",
     temperature: "水温",
     infusionCount: "推荐冲泡次数",
     infusionCountUnit: "泡",
+    strength: "口味浓淡",
+    strengthNames: {
+      light: "清淡",
+      standard: "标准",
+      strong: "浓郁"
+    },
+    autoCalculated: "自动计算",
+    editableField: "可编辑",
+    startBrewing: "开始泡茶",
     rangeMinLabel: "下限",
     rangeMaxLabel: "上限",
     exportImage: "导出图片",
@@ -148,6 +164,8 @@ export const copies: Record<Language, Copy> = {
     resume: "继续",
     reset: "重置",
     closeTimer: "关闭计时器",
+    timerAlerts: "计时提醒",
+    timerAlertsOn: "已开启提醒",
     pourOut: "出汤",
     allDone: "流程完成，可以按口味继续延长下一泡。",
     grams: "克",
@@ -177,12 +195,21 @@ export const copies: Record<Language, Copy> = {
     recommendedVessel: "Recommended vessel",
     recommendation: "Recommendation",
     vessel: "Vessel",
-    water: "Water",
+    water: "Water (vessel capacity)",
     teaAmount: "Tea leaves",
     ratio: "Tea-water ratio",
     temperature: "Water temp",
     infusionCount: "Recommended infusions",
     infusionCountUnit: "infusions",
+    strength: "Strength",
+    strengthNames: {
+      light: "Light",
+      standard: "Standard",
+      strong: "Strong"
+    },
+    autoCalculated: "Auto calculated",
+    editableField: "Editable",
+    startBrewing: "Start brewing",
     rangeMinLabel: "minimum",
     rangeMaxLabel: "maximum",
     exportImage: "Export image",
@@ -233,6 +260,8 @@ export const copies: Record<Language, Copy> = {
     resume: "Resume",
     reset: "Reset",
     closeTimer: "Close timer",
+    timerAlerts: "Timer alerts",
+    timerAlertsOn: "Alerts on",
     pourOut: "Pour out",
     allDone: "Flow complete. Extend later infusions to taste.",
     grams: "g",
@@ -262,12 +291,21 @@ export const copies: Record<Language, Copy> = {
     recommendedVessel: "Empfohlenes Gefäß",
     recommendation: "Empfehlung",
     vessel: "Gefäß",
-    water: "Wasser",
+    water: "Wasser (Gefäßvolumen)",
     teaAmount: "Teemenge",
     ratio: "Tee-Wasser-Verhältnis",
     temperature: "Wassertemperatur",
     infusionCount: "Empfohlene Aufgüsse",
     infusionCountUnit: "Aufgüsse",
+    strength: "Stärke",
+    strengthNames: {
+      light: "Mild",
+      standard: "Standard",
+      strong: "Kräftig"
+    },
+    autoCalculated: "Automatisch berechnet",
+    editableField: "Bearbeitbar",
+    startBrewing: "Brühen starten",
     rangeMinLabel: "Minimum",
     rangeMaxLabel: "Maximum",
     exportImage: "Bild exportieren",
@@ -318,6 +356,8 @@ export const copies: Record<Language, Copy> = {
     resume: "Weiter",
     reset: "Zurücksetzen",
     closeTimer: "Timer schließen",
+    timerAlerts: "Benachrichtigung",
+    timerAlertsOn: "Benachrichtigung aktiv",
     pourOut: "Abgießen",
     allDone: "Ablauf fertig. Weitere Aufgüsse nach Geschmack verlängern.",
     grams: "g",

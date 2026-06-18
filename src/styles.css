@@ -256,6 +256,16 @@ h2 {
   margin-top: 20px;
 }
 
+.jumpToFlowButton {
+  min-height: 40px;
+  border: 1px solid #2b6f58;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #2b6f58;
+  color: #ffffff;
+  font-weight: 800;
+}
+
 .controlBlock {
   display: grid;
   align-content: start;
@@ -294,6 +304,12 @@ h2 {
   gap: 12px;
 }
 
+.summaryToolbar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 14px;
+}
+
 .metric {
   display: grid;
   gap: 6px;
@@ -307,11 +323,28 @@ h2 {
 }
 
 .metricLabel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
   color: #66736b;
   font-size: 0.86rem;
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+.metricBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: #edf3eb;
+  color: #4e6358;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1.25;
 }
 
 .metric strong,
@@ -433,7 +466,7 @@ h2 {
 .stepTimerButton {
   align-self: end;
   min-width: 86px;
-  min-height: 34px;
+  min-height: 44px;
   padding: 0 12px;
   border-color: #2b6f58;
   background: #f8fbf7;
@@ -449,7 +482,7 @@ h2 {
 
 .inlineTimerToggle {
   min-width: 42px;
-  min-height: 34px;
+  min-height: 44px;
   padding: 0;
   border-color: #2b6f58;
   background: #2b6f58;
@@ -491,6 +524,11 @@ h2 {
   max-height: min(760px, calc(100vh - 40px));
   overflow: auto;
   box-shadow: 0 24px 60px rgba(20, 31, 25, 0.22);
+}
+
+.timerDialog:focus {
+  outline: 2px solid rgba(43, 111, 88, 0.28);
+  outline-offset: 3px;
 }
 
 .timerDialogControls {
@@ -608,6 +646,22 @@ h2 {
   margin-top: 14px;
 }
 
+.timerAlertToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: #435047;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.timerAlertToggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #2b6f58;
+}
+
 .timerActions button {
   padding: 0 16px;
 }
@@ -712,7 +766,27 @@ h2 {
 
 @media (max-width: 520px) {
   .summaryGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .metric {
+    min-height: 84px;
+    padding: 12px;
+  }
+
+  .metric strong,
+  .metricInputValue {
+    font-size: 1.05rem;
+  }
+
+  .metricInputValue input {
+    width: 68px;
+  }
+
+  .sectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .stepList li {

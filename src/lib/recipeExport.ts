@@ -1,6 +1,6 @@
 import { interpolate } from "../i18n";
 import type { Copy } from "../i18n";
-import type { BrewingRecipe, InfusionDetailKey } from "../types";
+import type { BrewStrength, BrewingRecipe, InfusionDetailKey } from "../types";
 
 export interface EditableParameters {
   waterMl: string;
@@ -8,6 +8,7 @@ export interface EditableParameters {
   ratioMlPerGram: string;
   ratioRangeMin?: string;
   ratioRangeMax?: string;
+  strength?: BrewStrength;
 }
 
 export interface TimerStep {
@@ -31,13 +32,15 @@ interface ImageExportMetadata {
 
 const RECIPE_EXPORT_BASE_FILENAME = "tea-master-recipe";
 export const RECIPE_PDF_FILENAME = `${RECIPE_EXPORT_BASE_FILENAME}.pdf`;
+const TEA_MASTER_PUBLIC_URL = "https://carp-h.github.io/tea-master/";
 
 const recipeCardWidth = 900;
 const recipeCardHorizontalPadding = 56;
 const recipeCardDividerWidth = recipeCardWidth - recipeCardHorizontalPadding * 2;
 const recipeCardTextWrapLength = 54;
-const recipeCardFooterGap = 90;
+const recipeCardFooterGap = 124;
 const recipeCardFooterBottomPadding = 56;
+const recipeCardFooterLinkGap = 34;
 const recipeImageRasterScale = 3;
 
 export function getImageExportMetadata(
@@ -87,7 +90,7 @@ export async function downloadRecipePdf(
   recipe: BrewingRecipe,
   editableParameters: EditableParameters
 ) {
-  const { svg, width, height } = buildRecipeCardDocument(
+  const { svg, width, height, siteLinkRect } = buildRecipeCardDocument(
     copy,
     recipe,
     editableParameters
@@ -108,6 +111,7 @@ export async function downloadRecipePdf(
   });
 
   pdf.addImage(imageDataUrl, "PNG", 0, 0, width, height);
+  addPdfSiteLink(pdf, siteLinkRect);
   pdf.save(RECIPE_PDF_FILENAME);
 }
 
@@ -206,6 +210,13 @@ function buildRecipeCardDocument(
     lastBodyY + recipeCardFooterGap + recipeCardFooterBottomPadding
   );
   const footerY = height - recipeCardFooterBottomPadding;
+  const siteLinkY = footerY - recipeCardFooterLinkGap;
+  const siteLinkRect = {
+    x: recipeCardHorizontalPadding,
+    y: siteLinkY - 22,
+    width: recipeCardDividerWidth,
+    height: 28
+  };
   const textLines = bodyLines
     .map((line, index) => {
       const y = contentStartY + index * lineHeight;
@@ -221,6 +232,7 @@ function buildRecipeCardDocument(
     .title { fill: #173126; font: 700 36px Inter, "Segoe UI", sans-serif; }
     .slogan { fill: #8b5d2b; font: 700 22px Georgia, "Times New Roman", serif; }
     .body { fill: #36463d; font: 500 22px Inter, "Segoe UI", sans-serif; }
+    .siteLink { fill: #2b6f58; font: 600 18px Inter, "Segoe UI", sans-serif; text-decoration: underline; }
     .footer { fill: #6d756f; font: 600 19px Inter, "Segoe UI", sans-serif; }
     .rule { stroke: #c99b50; stroke-width: 3; stroke-linecap: round; }
     .logoPrimary { fill: none; stroke: #2b6f58; stroke-linecap: round; stroke-linejoin: round; }
@@ -243,8 +255,12 @@ function buildRecipeCardDocument(
   <text class="slogan" x="144" y="106">${escapeXml(copy.slogan)}</text>
   <path class="rule" d="M${recipeCardHorizontalPadding} 132h${recipeCardDividerWidth}" />
   ${textLines}
+  <a href="${TEA_MASTER_PUBLIC_URL}" target="_blank" rel="noopener noreferrer">
+    <text class="siteLink" x="${recipeCardHorizontalPadding}" y="${siteLinkY}">${TEA_MASTER_PUBLIC_URL}</text>
+  </a>
   <text class="footer" x="${recipeCardHorizontalPadding}" y="${footerY}">${escapeXml(copy.footerCredit)}</text>
-</svg>`
+</svg>`,
+    siteLinkRect
   };
 }
 
@@ -259,6 +275,7 @@ function buildRecipeCardLines(
     `${copy.chooseTea}: ${copy.teaNames[recipe.teaType]}`,
     `${copy.vessel}: ${copy.vesselNames[recipe.vessel]}`,
     `${copy.water}: ${editableParameters.waterMl} ${copy.milliliters}`,
+    `${copy.strength}: ${copy.strengthNames[editableParameters.strength ?? "standard"]}`,
     `${copy.teaAmount}: ${editableParameters.teaGrams} ${copy.grams}`,
     `${copy.ratio}: ${formatEditableRatio(editableParameters)}`,
     `${copy.temperature}: ${formatRecipeTemperature(recipe)}`,
@@ -269,6 +286,29 @@ function buildRecipeCardLines(
       (step, index) => `${index + 1}. ${step.label} - ${formatStepDetail(step, copy)}`
     )
   ];
+}
+
+function addPdfSiteLink(
+  pdf: unknown,
+  rect: { x: number; y: number; width: number; height: number }
+) {
+  const link = (pdf as {
+    link?: (
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+      options: { url: string }
+    ) => void;
+  }).link;
+
+  if (typeof link !== "function") {
+    return;
+  }
+
+  link(rect.x, rect.y, rect.width, rect.height, {
+    url: TEA_MASTER_PUBLIC_URL
+  });
 }
 
 function formatSeconds(seconds: number, unit: string) {
