@@ -2,7 +2,6 @@ import {
   Bell,
   Download,
   FileImage,
-  FileText,
   Pause,
   Pencil,
   Play,
@@ -19,7 +18,6 @@ import { parseRecipeQueryState } from "./lib/recipeQueryState";
 import {
   buildTimerSteps,
   downloadRecipeImage,
-  downloadRecipePdf,
   formatEditableRatio,
   formatRecipeTemperature,
   formatRecommendedInfusionCount,
@@ -769,16 +767,6 @@ function RecipeSaveControls({
     }
   }
 
-  async function handlePdfExport() {
-    try {
-      await downloadRecipePdf(copy, recipe, editableParameters);
-      setExportStatus(copy.pdfOpened);
-      setIsOpen(false);
-    } catch {
-      setExportStatus(copy.exportFailed);
-    }
-  }
-
   return (
     <div
       className="recipeSaveControls"
@@ -817,10 +805,6 @@ function RecipeSaveControls({
               {getImageExportLabel(copy, format)}
             </button>
           ))}
-          <button type="button" role="menuitem" onClick={handlePdfExport}>
-            <FileText size={18} />
-            {copy.saveAsPdf}
-          </button>
         </div>
       ) : null}
       {exportStatus ? <p className="exportStatus">{exportStatus}</p> : null}

@@ -24,14 +24,11 @@ export interface Copy {
   rangeMinLabel: string;
   rangeMaxLabel: string;
   exportImage: string;
-  exportPdf: string;
   saveRecipe: string;
   saveAsImage: string;
   saveAsPng: string;
   saveAsJpeg: string;
-  saveAsPdf: string;
   imageExported: string;
-  pdfOpened: string;
   exportFailed: string;
   process: string;
   prepare: string;
@@ -117,14 +114,11 @@ export const copies: Record<Language, Copy> = {
     rangeMinLabel: "下限",
     rangeMaxLabel: "上限",
     exportImage: "导出图片",
-    exportPdf: "导出 PDF",
     saveRecipe: "保存我的泡茶配方",
     saveAsImage: "以图片形式保存",
     saveAsPng: "保存为 PNG 图片",
     saveAsJpeg: "保存为 JPEG 图片",
-    saveAsPdf: "以 PDF 格式保存",
     imageExported: "配方图片已保存。",
-    pdfOpened: "配方 PDF 已保存。",
     exportFailed: "导出未完成，请再试一次。",
     process: "泡茶流程",
     prepare: "准备",
@@ -213,14 +207,11 @@ export const copies: Record<Language, Copy> = {
     rangeMinLabel: "minimum",
     rangeMaxLabel: "maximum",
     exportImage: "Export image",
-    exportPdf: "Export PDF",
     saveRecipe: "Save my brewing recipe",
     saveAsImage: "Save as image",
     saveAsPng: "Save as PNG",
     saveAsJpeg: "Save as JPEG",
-    saveAsPdf: "Save as PDF",
     imageExported: "Recipe image saved.",
-    pdfOpened: "Recipe PDF saved.",
     exportFailed: "Export did not finish. Please try again.",
     process: "Brewing flow",
     prepare: "Prepare",
@@ -309,14 +300,11 @@ export const copies: Record<Language, Copy> = {
     rangeMinLabel: "Minimum",
     rangeMaxLabel: "Maximum",
     exportImage: "Bild exportieren",
-    exportPdf: "PDF exportieren",
     saveRecipe: "Mein Brührezept speichern",
     saveAsImage: "Als Bild speichern",
     saveAsPng: "Als PNG speichern",
     saveAsJpeg: "Als JPEG speichern",
-    saveAsPdf: "Als PDF speichern",
     imageExported: "Rezeptbild gespeichert.",
-    pdfOpened: "Rezept-PDF gespeichert.",
     exportFailed: "Export nicht abgeschlossen. Bitte erneut versuchen.",
     process: "Brühablauf",
     prepare: "Vorbereiten",

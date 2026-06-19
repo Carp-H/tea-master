@@ -4,37 +4,12 @@ import { calculateRecipe } from "./calculateRecipe";
 import {
   buildRecipeCardSvg,
   downloadRecipeImage,
-  downloadRecipePdf,
   getImageExportMetadata,
-  imageExportFormats,
-  RECIPE_PDF_FILENAME
+  imageExportFormats
 } from "./recipeExport";
 import type { ImageExportFormat } from "./recipeExport";
 
-const pdfMocks = vi.hoisted(() => ({
-  addImage: vi.fn(),
-  link: vi.fn(),
-  save: vi.fn(),
-  jsPDF: vi.fn()
-}));
-
-vi.mock("jspdf", () => ({
-  jsPDF: pdfMocks.jsPDF
-}));
-
 describe("recipe export", () => {
-  beforeEach(() => {
-    pdfMocks.addImage.mockClear();
-    pdfMocks.link.mockClear();
-    pdfMocks.save.mockClear();
-    pdfMocks.jsPDF.mockClear();
-    pdfMocks.jsPDF.mockReturnValue({
-      addImage: pdfMocks.addImage,
-      link: pdfMocks.link,
-      save: pdfMocks.save
-    });
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -66,8 +41,10 @@ describe("recipe export", () => {
     expect(svg).toContain("口味浓淡: 标准");
     expect(svg).toContain("投茶量: 2.5 克");
     expect(svg).toContain("茶水比: 1:100");
-    expect(svg).toContain('href="https://carp-h.github.io/tea-master/"');
     expect(svg).toContain(">https://carp-h.github.io/tea-master/<");
+    expect(svg).not.toContain("<a ");
+    expect(svg).not.toContain("href=");
+    expect(svg).not.toContain("target=");
     expect(svg).toContain("LH x Codex, 诚意呈现。");
   });
 
@@ -122,7 +99,6 @@ describe("recipe export", () => {
       filename: "tea-master-recipe.jpg",
       mimeType: "image/jpeg"
     });
-    expect(RECIPE_PDF_FILENAME).toBe("tea-master-recipe.pdf");
   });
 
   it.each([
@@ -156,35 +132,6 @@ describe("recipe export", () => {
     }
   );
 
-  it("embeds the rendered recipe card in a direct PDF download", async () => {
-    mockBrowserExportApis();
-
-    await downloadRecipePdf(copies.zh, recipe, editableParameters);
-
-    expect(pdfMocks.jsPDF).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orientation: "landscape",
-        unit: "pt",
-        format: [900, expect.any(Number)]
-      })
-    );
-    expect(pdfMocks.addImage).toHaveBeenCalledWith(
-      expect.stringMatching(/^data:image\/png;base64,/),
-      "PNG",
-      0,
-      0,
-      900,
-      expect.any(Number)
-    );
-    expect(pdfMocks.link).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.any(Number),
-      expect.any(Number),
-      expect.any(Number),
-      { url: "https://carp-h.github.io/tea-master/" }
-    );
-    expect(pdfMocks.save).toHaveBeenCalledWith("tea-master-recipe.pdf");
-  });
 });
 
 function mockBrowserExportApis() {

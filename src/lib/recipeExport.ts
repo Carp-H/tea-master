@@ -31,7 +31,6 @@ interface ImageExportMetadata {
 }
 
 const RECIPE_EXPORT_BASE_FILENAME = "tea-master-recipe";
-export const RECIPE_PDF_FILENAME = `${RECIPE_EXPORT_BASE_FILENAME}.pdf`;
 const TEA_MASTER_PUBLIC_URL = "https://carp-h.github.io/tea-master/";
 
 const recipeCardWidth = 900;
@@ -83,36 +82,6 @@ export async function downloadRecipeImage(
     scale: recipeImageRasterScale
   });
   downloadBlob(imageBlob, metadata.filename);
-}
-
-export async function downloadRecipePdf(
-  copy: Copy,
-  recipe: BrewingRecipe,
-  editableParameters: EditableParameters
-) {
-  const { svg, width, height, siteLinkRect } = buildRecipeCardDocument(
-    copy,
-    recipe,
-    editableParameters
-  );
-  const imageBlob = await renderSvgToImageBlob(svg, {
-    width,
-    height,
-    mimeType: "image/png",
-    background: "#fffefa",
-    scale: 2
-  });
-  const imageDataUrl = await readBlobAsDataUrl(imageBlob);
-  const { jsPDF } = await import("jspdf");
-  const pdf = new jsPDF({
-    orientation: height > width ? "portrait" : "landscape",
-    unit: "pt",
-    format: [width, height]
-  });
-
-  pdf.addImage(imageDataUrl, "PNG", 0, 0, width, height);
-  addPdfSiteLink(pdf, siteLinkRect);
-  pdf.save(RECIPE_PDF_FILENAME);
 }
 
 export function buildRecipeCardSvg(
@@ -211,12 +180,6 @@ function buildRecipeCardDocument(
   );
   const footerY = height - recipeCardFooterBottomPadding;
   const siteLinkY = footerY - recipeCardFooterLinkGap;
-  const siteLinkRect = {
-    x: recipeCardHorizontalPadding,
-    y: siteLinkY - 22,
-    width: recipeCardDividerWidth,
-    height: 28
-  };
   const textLines = bodyLines
     .map((line, index) => {
       const y = contentStartY + index * lineHeight;
@@ -255,12 +218,9 @@ function buildRecipeCardDocument(
   <text class="slogan" x="144" y="106">${escapeXml(copy.slogan)}</text>
   <path class="rule" d="M${recipeCardHorizontalPadding} 132h${recipeCardDividerWidth}" />
   ${textLines}
-  <a href="${TEA_MASTER_PUBLIC_URL}" target="_blank" rel="noopener noreferrer">
-    <text class="siteLink" x="${recipeCardHorizontalPadding}" y="${siteLinkY}">${TEA_MASTER_PUBLIC_URL}</text>
-  </a>
+  <text class="siteLink" x="${recipeCardHorizontalPadding}" y="${siteLinkY}">${TEA_MASTER_PUBLIC_URL}</text>
   <text class="footer" x="${recipeCardHorizontalPadding}" y="${footerY}">${escapeXml(copy.footerCredit)}</text>
-</svg>`,
-    siteLinkRect
+</svg>`
   };
 }
 
@@ -286,29 +246,6 @@ function buildRecipeCardLines(
       (step, index) => `${index + 1}. ${step.label} - ${formatStepDetail(step, copy)}`
     )
   ];
-}
-
-function addPdfSiteLink(
-  pdf: unknown,
-  rect: { x: number; y: number; width: number; height: number }
-) {
-  const link = (pdf as {
-    link?: (
-      x: number,
-      y: number,
-      width: number,
-      height: number,
-      options: { url: string }
-    ) => void;
-  }).link;
-
-  if (typeof link !== "function") {
-    return;
-  }
-
-  link(rect.x, rect.y, rect.width, rect.height, {
-    url: TEA_MASTER_PUBLIC_URL
-  });
 }
 
 function formatSeconds(seconds: number, unit: string) {
@@ -486,16 +423,6 @@ function loadSvgImage(svg: string) {
   });
 }
 
-function readBlobAsDataUrl(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Could not read exported image"));
-    reader.readAsDataURL(blob);
-  });
-}
-
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -505,7 +432,7 @@ function downloadBlob(blob: Blob, filename: string) {
   document.body.append(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
 function escapeXml(value: string) {
