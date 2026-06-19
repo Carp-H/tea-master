@@ -11,7 +11,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 const exportMocks = vi.hoisted(() => ({
-  downloadRecipeImage: vi.fn(() => Promise.resolve())
+  downloadRecipeImage: vi.fn(() =>
+    Promise.resolve({
+      extension: "png",
+      filename: "tea-master-recipe.png",
+      mimeType: "image/png",
+      saved: true
+    })
+  )
 }));
 
 const clipboardWriteMock = vi.fn(() => Promise.resolve());
@@ -36,6 +43,12 @@ describe("Tea Master app", () => {
       vibrate: vi.fn()
     });
     exportMocks.downloadRecipeImage.mockClear();
+    exportMocks.downloadRecipeImage.mockResolvedValue({
+      extension: "png",
+      filename: "tea-master-recipe.png",
+      mimeType: "image/png",
+      saved: true
+    });
     clipboardWriteMock.mockClear();
   });
 

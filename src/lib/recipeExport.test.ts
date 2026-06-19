@@ -109,7 +109,7 @@ describe("recipe export", () => {
     async (format, mimeType, filename, quality) => {
       const { clickSpy, fillRect, scale, toBlobSpy } = mockBrowserExportApis();
 
-      await downloadRecipeImage(
+      const result = await downloadRecipeImage(
         copies.zh,
         recipe,
         editableParameters,
@@ -123,6 +123,11 @@ describe("recipe export", () => {
       );
       expect(scale).toHaveBeenCalledWith(3, 3);
       expect(clickSpy.mock.contexts.at(-1)).toHaveProperty("download", filename);
+      expect(result).toMatchObject({
+        filename,
+        mimeType,
+        saved: true
+      });
 
       if (format === "jpeg") {
         expect(fillRect).toHaveBeenCalledWith(0, 0, 900, expect.any(Number));

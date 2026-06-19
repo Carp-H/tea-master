@@ -759,7 +759,12 @@ function RecipeSaveControls({
 
   async function handleImageExport(format: ImageExportFormat) {
     try {
-      await downloadRecipeImage(copy, recipe, editableParameters, format);
+      await downloadRecipeImage(
+        copy,
+        recipe,
+        editableParameters,
+        format
+      );
       setExportStatus(copy.imageExported);
       setIsOpen(false);
     } catch {

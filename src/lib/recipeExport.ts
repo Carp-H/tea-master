@@ -30,6 +30,10 @@ interface ImageExportMetadata {
   mimeType: string;
 }
 
+export interface RecipeImageExportResult extends ImageExportMetadata {
+  saved: boolean;
+}
+
 const RECIPE_EXPORT_BASE_FILENAME = "tea-master-recipe";
 const TEA_MASTER_PUBLIC_URL = "https://carp-h.github.io/tea-master/";
 
@@ -66,8 +70,9 @@ export async function downloadRecipeImage(
   recipe: BrewingRecipe,
   editableParameters: EditableParameters,
   format: ImageExportFormat
-) {
+): Promise<RecipeImageExportResult> {
   const metadata = getImageExportMetadata(format);
+  const writableFile = await createWritableImageFile(metadata);
   const { svg, width, height } = buildRecipeCardDocument(
     copy,
     recipe,
@@ -81,7 +86,15 @@ export async function downloadRecipeImage(
     background: format === "jpeg" ? "#fffefa" : undefined,
     scale: recipeImageRasterScale
   });
+
+  if (writableFile) {
+    await writableFile.write(imageBlob);
+    await writableFile.close();
+    return { ...metadata, saved: true };
+  }
+
   downloadBlob(imageBlob, metadata.filename);
+  return { ...metadata, saved: true };
 }
 
 export function buildRecipeCardSvg(
@@ -421,6 +434,55 @@ function loadSvgImage(svg: string) {
     };
     image.src = url;
   });
+}
+
+interface WritableImageFile {
+  close: () => Promise<void>;
+  write: (data: Blob) => Promise<void>;
+}
+
+type ImageSavePicker = (options: {
+  suggestedName: string;
+  types: Array<{
+    accept: Record<string, string[]>;
+    description: string;
+  }>;
+}) => Promise<{
+  createWritable: () => Promise<WritableImageFile>;
+}>;
+
+async function createWritableImageFile(
+  metadata: ImageExportMetadata
+): Promise<WritableImageFile | undefined> {
+  const showSaveFilePicker = (
+    window as Window & { showSaveFilePicker?: ImageSavePicker }
+  ).showSaveFilePicker;
+
+  if (!showSaveFilePicker) {
+    return undefined;
+  }
+
+  try {
+    const handle = await showSaveFilePicker({
+      suggestedName: metadata.filename,
+      types: [
+        {
+          description: metadata.extension.toUpperCase(),
+          accept: {
+            [metadata.mimeType]: [`.${metadata.extension}`]
+          }
+        }
+      ]
+    });
+
+    return handle.createWritable();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw error;
+    }
+
+    return undefined;
+  }
 }
 
 function downloadBlob(blob: Blob, filename: string) {
