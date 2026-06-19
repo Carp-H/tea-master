@@ -815,6 +815,97 @@ describe("Tea Master app", () => {
     expect(within(timer).queryByText("Your tea is ready. Sip slowly.")).not.toBeInTheDocument();
   });
 
+  it("keeps timer alerts ringing until the user closes the timer", async () => {
+    vi.useFakeTimers();
+    const vibrate = vi.fn();
+    const connect = vi.fn();
+    const start = vi.fn();
+    const stop = vi.fn();
+
+    class MockAudioContext {
+      currentTime = 0;
+      destination = {};
+      state: AudioContextState = "suspended";
+
+      resume = vi.fn(() => {
+        this.state = "running";
+        return Promise.resolve();
+      });
+
+      createOscillator() {
+        return {
+          connect,
+          frequency: { value: 0 },
+          start,
+          stop
+        };
+      }
+
+      createGain() {
+        return {
+          connect,
+          gain: { value: 0 }
+        };
+      }
+    }
+
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      clipboard: {
+        writeText: clipboardWriteMock
+      },
+      vibrate
+    });
+    vi.stubGlobal("AudioContext", MockAudioContext);
+
+    render(<App />);
+
+    const flow = screen.getByRole("region", { name: "Brewing flow" });
+    const firstStep = within(flow).getByText("Infusion 1").closest("li");
+    expect(firstStep).not.toBeNull();
+
+    fireEvent.click(within(firstStep!).getByRole("button", { name: "Start" }));
+    const timer = screen.getByRole("dialog", { name: "Infusion timer" });
+
+    await act(async () => {
+      fireEvent.click(within(timer).getByRole("checkbox", { name: "Timer alerts" }));
+      await Promise.resolve();
+    });
+    expect(start).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      vi.advanceTimersByTime(120000);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(start).toHaveBeenCalledTimes(2);
+    expect(vibrate).toHaveBeenCalledWith([450, 180, 450]);
+    expect(stop).toHaveBeenLastCalledWith(0.32);
+
+    act(() => {
+      vi.advanceTimersByTime(1200);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(start).toHaveBeenCalledTimes(3);
+
+    fireEvent.click(within(timer).getByRole("button", { name: "Close timer" }));
+    expect(vibrate).toHaveBeenCalledWith(0);
+
+    act(() => {
+      vi.advanceTimersByTime(2400);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(start).toHaveBeenCalledTimes(3);
+  });
+
   it("keeps a closed running timer visible in its brewing step button", async () => {
     vi.useFakeTimers();
     render(<App />);

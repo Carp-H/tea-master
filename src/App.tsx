@@ -870,12 +870,22 @@ function GuidedTimer({
   const [status, setStatus] = useState<TimerStatus>("idle");
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const previousStatusRef = useRef<TimerStatus>(status);
+  const stopTimerAlertRef = useRef<TimerAlertStop | undefined>(undefined);
 
   useEffect(() => {
+    stopTimerAlertRef.current?.();
+    stopTimerAlertRef.current = undefined;
     setCurrentStepIndex(0);
     setRemainingSeconds(steps[0]?.seconds ?? 0);
     setStatus("idle");
   }, [steps]);
+
+  useEffect(
+    () => () => {
+      stopTimerAlertRef.current?.();
+    },
+    []
+  );
 
   useEffect(() => {
     onTimerSnapshotChange({
@@ -891,7 +901,11 @@ function GuidedTimer({
 
     if (previousStatus === "running" && didFinish) {
       if (alertsEnabled) {
-        triggerTimerAlert(copy.timer, getTimerStepMessage(copy, steps, currentStepIndex, status));
+        stopTimerAlertRef.current?.();
+        stopTimerAlertRef.current = startTimerAlert(
+          copy.timer,
+          getTimerStepMessage(copy, steps, currentStepIndex, status)
+        );
       }
 
       if (!isOpen) {
@@ -976,6 +990,8 @@ function GuidedTimer({
   function beginStep(stepIndex: number) {
     const nextSeconds = steps[stepIndex]?.seconds ?? 0;
 
+    stopTimerAlertRef.current?.();
+    stopTimerAlertRef.current = undefined;
     setCurrentStepIndex(stepIndex);
     setRemainingSeconds(nextSeconds);
     onActiveStepChange(stepIndex);
@@ -1048,6 +1064,8 @@ function GuidedTimer({
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
+            stopTimerAlertRef.current?.();
+            stopTimerAlertRef.current = undefined;
             onClose();
           }
         }}
@@ -1060,7 +1078,11 @@ function GuidedTimer({
               type="button"
               className="timerCloseButton"
               aria-label={copy.closeTimer}
-              onClick={onClose}
+              onClick={() => {
+                stopTimerAlertRef.current?.();
+                stopTimerAlertRef.current = undefined;
+                onClose();
+              }}
             >
               <X size={18} aria-hidden="true" />
             </button>
@@ -1083,7 +1105,7 @@ function GuidedTimer({
             onChange={(event) => {
               setAlertsEnabled(event.currentTarget.checked);
               if (event.currentTarget.checked) {
-                void requestBrowserNotificationPermission();
+                void enableTimerAlerts();
               }
             }}
           />
@@ -1117,6 +1139,8 @@ function GuidedTimer({
             type="button"
             className="secondaryAction"
             onClick={() => {
+              stopTimerAlertRef.current?.();
+              stopTimerAlertRef.current = undefined;
               setRemainingSeconds(currentStep?.seconds ?? 0);
               setStatus("idle");
             }}
@@ -1313,13 +1337,26 @@ async function requestBrowserNotificationPermission() {
   }
 }
 
-function triggerTimerAlert(title: string, body: string) {
-  try {
-    navigator.vibrate?.([120, 80, 120]);
-  } catch {
-    // Optional haptics only.
-  }
+async function enableTimerAlerts() {
+  await requestBrowserNotificationPermission();
+  await unlockTimerAlertAudio();
+}
 
+type TimerAlertStop = () => void;
+
+function startTimerAlert(title: string, body: string): TimerAlertStop {
+  notifyTimerFinished(title, body);
+  pulseTimerAlert();
+
+  const repeatId = window.setInterval(pulseTimerAlert, 1200);
+
+  return () => {
+    window.clearInterval(repeatId);
+    stopTimerVibration();
+  };
+}
+
+function notifyTimerFinished(title: string, body: string) {
   try {
     if ("Notification" in window && Notification.permission === "granted") {
       new Notification(title, { body });
@@ -1327,11 +1364,29 @@ function triggerTimerAlert(title: string, body: string) {
   } catch {
     // Optional notifications only.
   }
-
-  playCompletionTone();
 }
 
-function playCompletionTone() {
+function pulseTimerAlert() {
+  try {
+    navigator.vibrate?.([450, 180, 450]);
+  } catch {
+    // Optional haptics only.
+  }
+
+  void playCompletionTone();
+}
+
+function stopTimerVibration() {
+  try {
+    navigator.vibrate?.(0);
+  } catch {
+    // Optional haptics only.
+  }
+}
+
+let timerAlertAudioContext: AudioContext | undefined;
+
+function getTimerAlertAudioContext() {
   try {
     const AudioContextConstructor =
       window.AudioContext ??
@@ -1339,19 +1394,69 @@ function playCompletionTone() {
         .webkitAudioContext;
 
     if (!AudioContextConstructor) {
+      return undefined;
+    }
+
+    if (
+      timerAlertAudioContext &&
+      timerAlertAudioContext.state !== "closed"
+    ) {
+      return timerAlertAudioContext;
+    }
+
+    timerAlertAudioContext = new AudioContextConstructor();
+    return timerAlertAudioContext;
+  } catch {
+    return undefined;
+  }
+}
+
+async function unlockTimerAlertAudio() {
+  try {
+    const context = getTimerAlertAudioContext();
+
+    if (!context) {
       return;
     }
 
-    const context = new AudioContextConstructor();
+    if (context.state === "suspended") {
+      await context.resume();
+    }
+
     const oscillator = context.createOscillator();
     const gain = context.createGain();
 
-    oscillator.frequency.value = 720;
-    gain.gain.value = 0.04;
+    gain.gain.value = 0;
     oscillator.connect(gain);
     gain.connect(context.destination);
     oscillator.start();
-    oscillator.stop(context.currentTime + 0.16);
+    oscillator.stop(context.currentTime + 0.03);
+  } catch {
+    // Audio alerts are optional.
+  }
+}
+
+async function playCompletionTone() {
+  try {
+    const context = getTimerAlertAudioContext();
+
+    if (!context) {
+      return;
+    }
+
+    if (context.state === "suspended") {
+      await context.resume();
+    }
+
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.frequency.value = 880;
+    gain.gain.value = 0.08;
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.32);
   } catch {
     // Optional sound only.
   }
